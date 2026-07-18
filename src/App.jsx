@@ -268,14 +268,37 @@ async function loadFiles(folder) {
             onChange={(event) => setPassword(event.target.value)}
             style={inputStyle}
           />
-
+<div style={{ position: "relative", width: "100%" }}>
           <input
-            type="password"
+           type={showPassword ? "text" : "password"}
             placeholder="Nhập lại mật khẩu"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            style={inputStyle}
+            style={{
+  ...inputStyle,
+  width: "100%",
+  paddingRight: "50px",
+  boxSizing: "border-box",
+}}
           />
+          <button
+  type="button"
+  onClick={() => setShowPassword(!showPassword)}
+  style={{
+    position: "absolute",
+    right: "12px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    fontSize: "20px",
+    padding: "4px",
+  }}
+>
+  {showPassword ? "🙈" : "👁️"}
+</button>
+</div>
 
           <button style={buttonStyle} onClick={createPassword}>
             TẠO KHO KÝ ỨC
