@@ -31,20 +31,77 @@ const savedFolder = localStorage.getItem("folderName");
     }
 }
 
-  function createPassword() {
-    if (password.length < 6) {
-      alert("Mật khẩu phải có ít nhất 6 ký tự.");
-      return;
-    }
+  async function createPassword() {
+  const code = customerCode.trim().toUpperCase();
 
-    if (password !== confirmPassword) {
-      alert("Hai mật khẩu không giống nhau.");
-      return;
-    }
-
-    localStorage.setItem("evermoment-password", password);
-    setScreen("memory");
+  if (!code) {
+    alert("Vui lòng nhập mã kho.");
+    return;
   }
+
+  if (password.length < 6) {
+    alert("Mật khẩu phải có ít nhất 6 ký tự.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    alert("Hai mật khẩu không giống nhau.");
+    return;
+  }
+
+  try {
+    const { data: customer, error } = await supabase
+      .from("customers")
+      .select("id, customer_code, customer_name, folder_name, password_hash")
+      .eq("customer_code", code)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      alert("Không thể kiểm tra mã kho. Vui lòng thử lại.");
+      return;
+    }
+
+    if (!customer) {
+      alert("Mã kho không tồn tại. Vui lòng kiểm tra lại mã được cấp.");
+      return;
+    }
+
+    if (customer.password_hash) {
+      alert("Kho này đã thiết lập mật khẩu. Vui lòng đăng nhập.");
+      setLoginPassword("");
+      setScreen("login");
+      return;
+    }
+
+    const { data: result, error: saveError } =
+  await supabase.functions.invoke("set-memory-password", {
+    body: {
+      customerCode: code,
+      password,
+    },
+  });
+
+if (saveError) {
+  alert("Không lưu được mật khẩu.");
+  return;
+}
+
+if (!result.success) {
+  alert(result.error);
+  return;
+}
+
+localStorage.setItem("folderName", customer.folder_name);
+
+
+setFolderName(customer.folder_name);
+setScreen("memory");
+  } catch (error) {
+    console.error(error);
+    alert("Không thể kết nối máy chủ. Vui lòng thử lại.");
+  }
+}
 
   async function login() {
   const code = customerCode.trim().toUpperCase();
