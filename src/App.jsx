@@ -11,25 +11,24 @@ const [customerCode, setCustomerCode] = useState("");
 const [customerName, setCustomerName] = useState("");
 const [folderName, setFolderName] = useState("");
 useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const codeFromUrl = params.get("code");
+
+  if (codeFromUrl) {
+    setCustomerCode(codeFromUrl.trim().toUpperCase());
+  }
+}, []);
+useEffect(() => {
   if (screen === "memory" && folderName) {
     loadFiles(folderName);
   }
 }, [screen, folderName]);
 
-  const savedPassword = localStorage.getItem("evermoment-password");
-const savedFolder = localStorage.getItem("folderName");
+  
   function openMemory() {
-    if (savedPassword) {
-
-        if (savedFolder) {
-            setFolderName(savedFolder);
-        }
-
-        setScreen("login");
-    } else {
-        setScreen("create-password");
-    }
-}
+  setLoginPassword("");
+  setScreen("create-password");
+} 
 
   async function createPassword() {
   const code = customerCode.trim().toUpperCase();
