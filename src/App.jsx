@@ -297,19 +297,39 @@ async function loadFiles(folder) {
   onChange={(event) => setCustomerCode(event.target.value)}
   style={inputStyle}
 />
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Nhập mật khẩu"
-            value={loginPassword}
-            onChange={(event) => setLoginPassword(event.target.value)}
-            style={inputStyle}
-          />
-<button
-  type="button"
-  onClick={() => setShowPassword(!showPassword)}
->
-  {showPassword ? "🙈 Ẩn mật khẩu" : "👁 Hiện mật khẩu"}
-</button>
+          <div style={{ position: "relative", width: "100%" }}>
+  <input
+    type={showPassword ? "text" : "password"}
+    placeholder="Nhập mật khẩu"
+    value={loginPassword}
+    onChange={(event) => setLoginPassword(event.target.value)}
+    style={{
+      ...inputStyle,
+      width: "100%",
+      paddingRight: "50px",
+      boxSizing: "border-box",
+    }}
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    style={{
+      position: "absolute",
+      right: "12px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontSize: "20px",
+      padding: "4px",
+    }}
+    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+  >
+    {showPassword ? "🙈" : "👁"}
+  </button>
+</div>
           <button style={buttonStyle} onClick={login}>
             MỞ KHO
           </button>
