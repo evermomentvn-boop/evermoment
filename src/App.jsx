@@ -15,7 +15,9 @@ useEffect(() => {
   const codeFromUrl = params.get("code");
 
   if (codeFromUrl) {
-    setCustomerCode(codeFromUrl.trim().toUpperCase());
+    const code = codeFromUrl.trim().toUpperCase();
+    setCustomerCode(code);
+    checkWarehouse(code);
   }
 }, []);
 useEffect(() => {
@@ -24,11 +26,51 @@ useEffect(() => {
   }
 }, [screen, folderName]);
 
-  
-  function openMemory() {
+  async function checkWarehouse(code) {
+  const { data: customer, error } = await supabase
+    .from("customers")
+    .select("password_hash")
+    .eq("customer_code", code)
+    .maybeSingle();
+
+  if (error || !customer) {
+    alert("Không tìm thấy mã kho.");
+    return;
+  }
+
+  if (customer.password_hash) {
+    setScreen("login");
+  } else {
+    setScreen("create-password");
+  }
+}
+  async function openMemory() {
   setLoginPassword("");
-  setScreen("create-password");
-} 
+
+  const code = customerCode.trim().toUpperCase();
+
+  if (!code) {
+    setScreen("create-password");
+    return;
+  }
+
+  const { data: customer, error } = await supabase
+    .from("customers")
+    .select("password_hash")
+    .eq("customer_code", code)
+    .maybeSingle();
+
+  if (error || !customer) {
+    alert("Không tìm thấy mã kho.");
+    return;
+  }
+
+  if (customer.password_hash) {
+    setScreen("login");
+  } else {
+    setScreen("create-password");
+  }
+}
 
   async function createPassword() {
   const code = customerCode.trim().toUpperCase();
