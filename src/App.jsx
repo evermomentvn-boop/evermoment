@@ -7,6 +7,8 @@ function App() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [files, setFiles] = useState([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+const [touchStart, setTouchStart] = useState(null);
 const [customerCode, setCustomerCode] = useState("");
 const [customerName, setCustomerName] = useState("");
 const [folderName, setFolderName] = useState("");
@@ -493,7 +495,7 @@ async function loadFiles(folder) {
                   <img
                     src={file.url}
                     alt={file.name}
-                    onClick={() => window.open(file.url, "_blank")}
+                    onClick={() => setSelectedImageIndex(index)}
                     style={{
                       width: "100%",
                       height: "180px",
@@ -554,6 +556,49 @@ async function loadFiles(folder) {
           </div>
         </div>
       )}
+      {selectedImageIndex !== null && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0, 0, 0, 0.95)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <button
+      type="button"
+      onClick={() => setSelectedImageIndex(null)}
+      style={{
+        position: "absolute",
+        top: "20px",
+        right: "20px",
+        border: "none",
+        background: "rgba(255,255,255,0.2)",
+        color: "white",
+        width: "44px",
+        height: "44px",
+        borderRadius: "50%",
+        fontSize: "24px",
+        cursor: "pointer",
+      }}
+    >
+      ✕
+    </button>
+
+    <img
+      src={files[selectedImageIndex]?.url}
+      alt={files[selectedImageIndex]?.name}
+      style={{
+        maxWidth: "100%",
+        maxHeight: "85vh",
+        objectFit: "contain",
+      }}
+    />
+  </div>
+)}
     </main>
   );
 }
