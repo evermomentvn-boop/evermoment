@@ -18,6 +18,8 @@ useEffect(() => {
     const code = codeFromUrl.trim().toUpperCase();
     setCustomerCode(code);
     checkWarehouse(code);
+    } else {
+  setScreen("login");
   }
 }, []);
 useEffect(() => {
