@@ -9,6 +9,9 @@ function App() {
   const [files, setFiles] = useState([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 const [touchStart, setTouchStart] = useState(null);
+const imageFiles = files.filter((file) =>
+  file.type.startsWith("image/")
+);
 const [customerCode, setCustomerCode] = useState("");
 const [customerName, setCustomerName] = useState("");
 const [folderName, setFolderName] = useState("");
@@ -482,27 +485,33 @@ async function loadFiles(folder) {
           </label>
 
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: "15px",
-              marginTop: "30px",
-            }}
-          >
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "4px",
+    marginTop: "30px",
+  }}
+>
             {files.map((file, index) => (
               <div key={`${file.name}-${index}`}>
                 {file.type.startsWith("image/") ? (
                   <img
                     src={file.url}
                     alt={file.name}
-                    onClick={() => setSelectedImageIndex(index)}
+                    onClick={() => {
+  const imageIndex = imageFiles.findIndex(
+    (imageFile) => imageFile.name === file.name
+  );
+  setSelectedImageIndex(imageIndex);
+}}
                     style={{
-                      width: "100%",
-                      height: "180px",
-                      objectFit: "cover",
-                      borderRadius: "12px",
-                      cursor: "pointer",
-                    }}
+  width: "100%",
+  aspectRatio: "1 / 1",
+  height: "auto",
+  objectFit: "cover",
+  borderRadius: "4px",
+  cursor: "pointer",
+}}
                   />
                 ) : (
                   <video
@@ -587,16 +596,69 @@ async function loadFiles(folder) {
     >
       ✕
     </button>
-
+<button
+  type="button"
+  onClick={() =>
+    setSelectedImageIndex(
+      selectedImageIndex === 0
+        ? imageFiles.length - 1
+        : selectedImageIndex - 1
+    )
+  }
+  style={{
+    position: "absolute",
+    left: "12px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    border: "none",
+    background: "rgba(255,255,255,0.2)",
+    color: "white",
+    width: "44px",
+    height: "44px",
+    borderRadius: "50%",
+    fontSize: "26px",
+    cursor: "pointer",
+    zIndex: 10000,
+  }}
+>
+  ‹
+</button>
     <img
-      src={files[selectedImageIndex]?.url}
-      alt={files[selectedImageIndex]?.name}
+      src={imageFiles[selectedImageIndex]?.url}
+alt={imageFiles[selectedImageIndex]?.name}
       style={{
         maxWidth: "100%",
         maxHeight: "85vh",
         objectFit: "contain",
       }}
     />
+    <button
+  type="button"
+  onClick={() =>
+    setSelectedImageIndex(
+      selectedImageIndex === imageFiles.length - 1
+        ? 0
+        : selectedImageIndex + 1
+    )
+  }
+  style={{
+    position: "absolute",
+    right: "12px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    border: "none",
+    background: "rgba(255,255,255,0.2)",
+    color: "white",
+    width: "44px",
+    height: "44px",
+    borderRadius: "50%",
+    fontSize: "26px",
+    cursor: "pointer",
+    zIndex: 10000,
+  }}
+>
+  ›
+</button>
   </div>
 )}
     </main>
