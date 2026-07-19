@@ -493,11 +493,13 @@ async function loadFiles(folder) {
                   <img
                     src={file.url}
                     alt={file.name}
+                    onClick={() => window.open(file.url, "_blank")}
                     style={{
                       width: "100%",
                       height: "180px",
                       objectFit: "cover",
                       borderRadius: "12px",
+                      cursor: "pointer",
                     }}
                   />
                 ) : (
@@ -513,6 +515,25 @@ async function loadFiles(folder) {
                 )}
 
                 <p style={{ fontSize: "13px" }}>{file.name}</p>
+                <a
+  href={file.url}
+  download={file.name}
+  target="_blank"
+  rel="noreferrer"
+  style={{
+    display: "inline-block",
+    textDecoration: "none",
+    background: "#2563eb",
+    color: "white",
+    padding: "6px 12px",
+    borderRadius: "8px",
+    marginRight: "6px",
+    marginBottom: "6px",
+    fontSize: "13px",
+  }}
+>
+  Tải về
+</a>
                 <button
   type="button"
   onClick={() => deleteFile(file)}
