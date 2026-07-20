@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import GalleryViewer from "./GalleryViewer";
 function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [screen, setScreen] = useState("home");
@@ -8,7 +9,7 @@ function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [files, setFiles] = useState([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-const [touchStart, setTouchStart] = useState(null);
+
 const imageFiles = files.filter((file) =>
   file.type.startsWith("image/")
 );
@@ -465,7 +466,13 @@ async function loadFiles(folder) {
       )}
 
       {screen === "memory" && (
-        <div style={{ ...cardStyle, width: "min(750px, 90vw)" }}>
+        <div
+  style={{
+    ...cardStyle,
+    width: "calc(100vw - 32px)",
+    maxWidth: "1400px",
+  }}
+>
           <h2>Kho ký ức của bạn</h2>
 
           <label
@@ -532,112 +539,12 @@ async function loadFiles(folder) {
           </div>
         </div>
       )}
-      {selectedImageIndex !== null && (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0, 0, 0, 0.95)",
-      zIndex: 9999,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}
-  >
-    <button
-      type="button"
-      onClick={() => setSelectedImageIndex(null)}
-      style={{
-        position: "absolute",
-        top: "20px",
-        right: "20px",
-        border: "none",
-        background: "rgba(255,255,255,0.2)",
-        color: "white",
-        width: "44px",
-        height: "44px",
-        borderRadius: "50%",
-        fontSize: "24px",
-        cursor: "pointer",
-      }}
-    >
-      ✕
-    </button>
-<button
-  type="button"
-  onClick={() =>
-    setSelectedImageIndex(
-      selectedImageIndex === 0
-        ? imageFiles.length - 1
-        : selectedImageIndex - 1
-    )
-  }
-  style={{
-    position: "absolute",
-    left: "12px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    border: "none",
-    background: "rgba(255,255,255,0.2)",
-    color: "white",
-    width: "44px",
-    height: "44px",
-    borderRadius: "50%",
-    fontSize: "26px",
-    cursor: "pointer",
-    zIndex: 10000,
-  }}
->
-  ‹
-</button>
-    <img
-  src={imageFiles[selectedImageIndex]?.url}
-  alt={imageFiles[selectedImageIndex]?.name}
-  onTouchStart={(event) => {
-    setTouchStart(event.touches[0].clientX);
-  }}
-  onTouchEnd={(event) => {
-    if (touchStart === null) return;
-
-    const touchEnd = event.changedTouches[0].clientX;
-    const distance = touchStart - touchEnd;
-
-    if (distance > 50 && selectedImageIndex < imageFiles.length - 1) {
-      setSelectedImageIndex(selectedImageIndex + 1);
-    }
-
-    if (distance < -50 && selectedImageIndex > 0) {
-      setSelectedImageIndex(selectedImageIndex - 1);
-    }
-
-    setTouchStart(null);
-  }}
-  style={{
-    maxWidth: "100%",
-    maxHeight: "85vh",
-    objectFit: "contain",
-    touchAction: "pan-y",
-    userSelect: "none",
-  }}
+      <GalleryViewer
+  images={imageFiles}
+  selectedIndex={selectedImageIndex}
+  setSelectedIndex={setSelectedImageIndex}
+  onClose={() => setSelectedImageIndex(null)}
 />
-    <div
-  style={{
-    position: "absolute",
-    bottom: "20px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "rgba(0,0,0,0.5)",
-    color: "white",
-    padding: "6px 14px",
-    borderRadius: "20px",
-    fontSize: "14px",
-    fontWeight: "500",
-  }}
->
-  {selectedImageIndex + 1} / {imageFiles.length}
-</div>
-  </div>
-)}
     </main>
   );
 }

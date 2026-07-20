@@ -109,3 +109,8 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+@media (max-width: 768px) {
+  .gallery-desktop-arrow {
+    display: none !important;
+  }
+}
