@@ -525,41 +525,8 @@ async function loadFiles(folder) {
                   />
                 )}
 
-                <p style={{ fontSize: "13px" }}>{file.name}</p>
-                <a
-  href={file.url}
-  download={file.name}
-  target="_blank"
-  rel="noreferrer"
-  style={{
-    display: "inline-block",
-    textDecoration: "none",
-    background: "#2563eb",
-    color: "white",
-    padding: "6px 12px",
-    borderRadius: "8px",
-    marginRight: "6px",
-    marginBottom: "6px",
-    fontSize: "13px",
-  }}
->
-  Tải về
-</a>
-                <button
-  type="button"
-  onClick={() => deleteFile(file)}
-  style={{
-    border: "none",
-    background: "#dc3545",
-    color: "white",
-    padding: "6px 12px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    marginTop: "6px",
-  }}
->
-  XÓA
-</button>
+                
+ 
               </div>
             ))}
           </div>
@@ -624,41 +591,51 @@ async function loadFiles(folder) {
   ‹
 </button>
     <img
-      src={imageFiles[selectedImageIndex]?.url}
-alt={imageFiles[selectedImageIndex]?.name}
-      style={{
-        maxWidth: "100%",
-        maxHeight: "85vh",
-        objectFit: "contain",
-      }}
-    />
-    <button
-  type="button"
-  onClick={() =>
-    setSelectedImageIndex(
-      selectedImageIndex === imageFiles.length - 1
-        ? 0
-        : selectedImageIndex + 1
-    )
-  }
+  src={imageFiles[selectedImageIndex]?.url}
+  alt={imageFiles[selectedImageIndex]?.name}
+  onTouchStart={(event) => {
+    setTouchStart(event.touches[0].clientX);
+  }}
+  onTouchEnd={(event) => {
+    if (touchStart === null) return;
+
+    const touchEnd = event.changedTouches[0].clientX;
+    const distance = touchStart - touchEnd;
+
+    if (distance > 50 && selectedImageIndex < imageFiles.length - 1) {
+      setSelectedImageIndex(selectedImageIndex + 1);
+    }
+
+    if (distance < -50 && selectedImageIndex > 0) {
+      setSelectedImageIndex(selectedImageIndex - 1);
+    }
+
+    setTouchStart(null);
+  }}
+  style={{
+    maxWidth: "100%",
+    maxHeight: "85vh",
+    objectFit: "contain",
+    touchAction: "pan-y",
+    userSelect: "none",
+  }}
+/>
+    <div
   style={{
     position: "absolute",
-    right: "12px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    border: "none",
-    background: "rgba(255,255,255,0.2)",
+    bottom: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "rgba(0,0,0,0.5)",
     color: "white",
-    width: "44px",
-    height: "44px",
-    borderRadius: "50%",
-    fontSize: "26px",
-    cursor: "pointer",
-    zIndex: 10000,
+    padding: "6px 14px",
+    borderRadius: "20px",
+    fontSize: "14px",
+    fontWeight: "500",
   }}
 >
-  ›
-</button>
+  {selectedImageIndex + 1} / {imageFiles.length}
+</div>
   </div>
 )}
     </main>
