@@ -10,8 +10,10 @@ function App() {
   const [files, setFiles] = useState([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 
-const imageFiles = files.filter((file) =>
-  file.type.startsWith("image/")
+const mediaFiles = files.filter(
+  (file) =>
+    file.type.startsWith("image/") ||
+    file.type.startsWith("video/")
 );
 const [customerCode, setCustomerCode] = useState("");
 const [customerName, setCustomerName] = useState("");
@@ -506,10 +508,11 @@ async function loadFiles(folder) {
                     src={file.url}
                     alt={file.name}
                     onClick={() => {
-  const imageIndex = imageFiles.findIndex(
-    (imageFile) => imageFile.name === file.name
+  const mediaIndex = mediaFiles.findIndex(
+    (mediaFile) => mediaFile.name === file.name
   );
-  setSelectedImageIndex(imageIndex);
+
+  setSelectedImageIndex(mediaIndex);
 }}
                     style={{
   width: "100%",
@@ -521,15 +524,53 @@ async function loadFiles(folder) {
 }}
                   />
                 ) : (
-                  <video
-                    src={file.url}
-                    controls
-                    style={{
-                      width: "100%",
-                      height: "180px",
-                      borderRadius: "12px",
-                    }}
-                  />
+                  <div
+  onClick={() => {
+    const mediaIndex = mediaFiles.findIndex(
+      (mediaFile) => mediaFile.name === file.name
+    );
+
+    setSelectedImageIndex(mediaIndex);
+  }}
+  style={{
+    position: "relative",
+    width: "100%",
+    aspectRatio: "1 / 1",
+    overflow: "hidden",
+    borderRadius: "4px",
+    cursor: "pointer",
+  }}
+>
+  <video
+    src={file.url}
+    muted
+    playsInline
+    preload="metadata"
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      pointerEvents: "none",
+    }}
+  />
+
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.12)",
+      color: "white",
+      fontSize: "30px",
+      textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+      pointerEvents: "none",
+    }}
+  >
+    ▶
+  </div>
+</div>
                 )}
 
                 
@@ -540,10 +581,11 @@ async function loadFiles(folder) {
         </div>
       )}
       <GalleryViewer
-  images={imageFiles}
+  media={mediaFiles}
   selectedIndex={selectedImageIndex}
   setSelectedIndex={setSelectedImageIndex}
   onClose={() => setSelectedImageIndex(null)}
+  onDelete={deleteFile}
 />
     </main>
   );
