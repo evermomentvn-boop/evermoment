@@ -675,7 +675,7 @@ function GalleryViewer({
                   alignItems: "center",
                   justifyContent: "center",
                   padding:
-                    "max(70px, env(safe-area-inset-top)) 12px max(88px, env(safe-area-inset-bottom))",
+  "max(12px, env(safe-area-inset-top)) 4px max(12px, env(safe-area-inset-bottom))",
                   boxSizing: "border-box",
                 }}
                 onClick={handleMediaTap}
