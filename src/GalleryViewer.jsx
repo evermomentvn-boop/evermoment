@@ -737,6 +737,34 @@ function GalleryViewer({
           })}
         </div>
       </div>
+      {window.innerWidth > 768 && (
+  <button
+    type="button"
+    onClick={closeViewer}
+    style={{
+      position: "fixed",
+      top: 20,
+      right: 20,
+      width: 44,
+      height: 44,
+      border: "none",
+      borderRadius: "50%",
+      background: "rgba(0,0,0,0.55)",
+      color: "#fff",
+      fontSize: "24px",
+      fontWeight: "bold",
+      cursor: "pointer",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backdropFilter: "blur(6px)",
+    }}
+    aria-label="Đóng"
+  >
+    ✕
+  </button>
+)}
 {window.innerWidth <= 768 && (
   <MobileGalleryToolbar
     selectedItem={currentMedia}
