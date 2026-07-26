@@ -617,32 +617,10 @@ function GalleryViewer({
         })`,
         touchAction: "none",
         overscrollBehavior: "none",
+        WebkitTouchCallout: "default",
       }}
     >
-      <button
-  type="button"
-  onClick={closeViewer}
-  aria-label="Đóng trình xem"
-  style={{
-    position: "absolute",
-    top: "max(14px, env(safe-area-inset-top))",
-    right: "16px",
-    zIndex: 10020,
-    width: "44px",
-    height: "44px",
-    border: "none",
-    borderRadius: "50%",
-    background: "rgba(255,255,255,0.22)",
-    color: "white",
-    fontSize: "24px",
-    lineHeight: 1,
-    cursor: "pointer",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-  }}
->
-  ✕
-</button>
+      
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -653,10 +631,7 @@ function GalleryViewer({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onDoubleClick={handleDoubleClick}
-        onPointerUp={handlePointerEnd}
-onPointerCancel={handlePointerEnd}
-onDoubleClick={handleDoubleClick}
-onWheel={handleWheel}S
+        onWheel={handleWheel}
         style={{
           width: "100%",
           height: "100%",
@@ -729,7 +704,10 @@ onWheel={handleWheel}S
                   <img
                     src={item.url}
                     alt={item.name || "Ảnh EverMoment"}
-                    draggable="false"
+                    draggable
+                    onContextMenu={(event) => {
+                      event.stopPropagation();
+                    }}
                     loading={
                       Math.abs(index - selectedIndex) <= 1
                         ? "eager"
@@ -739,8 +717,9 @@ onWheel={handleWheel}S
                       maxWidth: "100%",
                       maxHeight: "100%",
                       objectFit: "contain",
-                      userSelect: "none",
-                      WebkitUserDrag: "none",
+                      userSelect: "auto",
+                      WebkitUserDrag: "auto",
+                      WebkitTouchCallout: "default",
                       transform: isCurrentItem
                         ? `translate3d(${imageX}px, ${imageY}px, 0) scale(${scale})`
                         : "none",
