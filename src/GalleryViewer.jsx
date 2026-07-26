@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
+import MobileGalleryToolbar from "./MobileGalleryToolbar";
 const SWIPE_THRESHOLD = 70;
 const CLOSE_THRESHOLD = 120;
 const MAX_SCALE = 4;
@@ -758,7 +758,14 @@ onWheel={handleWheel}S
           })}
         </div>
       </div>
-
+{window.innerWidth <= 768 && (
+  <MobileGalleryToolbar
+    selectedItem={currentMedia}
+    onClose={closeViewer}
+    onDelete={onDelete ? deleteCurrentMedia : null}
+    visible={showControls}
+  />
+)}
       <div
         className="gallery-toolbar gallery-toolbar-top"
         style={{
