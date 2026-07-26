@@ -545,7 +545,10 @@ async function loadFiles(folder) {
     src={file.url}
     muted
     playsInline
-    preload="metadata"
+    preload="auto"
+    onLoadedMetadata={(event) => {
+  event.currentTarget.currentTime = 0.1;
+}}
     style={{
       width: "100%",
       height: "100%",
