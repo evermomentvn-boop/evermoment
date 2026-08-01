@@ -239,6 +239,7 @@ async function createImageThumbnail(file) {
 
   for (const file of selectedFiles) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    let thumbnailUrl = null;
     if (file.type.startsWith("image/")) {
   const thumb = await createImageThumbnail(file);
 
@@ -257,8 +258,8 @@ if (thumbError) {
 const { data: thumbData } = supabase.storage
   .from("memories")
   .getPublicUrl(thumbFileName);
-
-console.log("Thumbnail URL:", thumbData.publicUrl);
+thumbnailUrl = thumbData.publicUrl;
+console.log("Thumbnail URL:", thumbnailUrl);
 }
 const fileName = `${folderName}/${Date.now()}-${safeName}`;
 
@@ -282,7 +283,7 @@ console.log(data.publicUrl);
         name: file.name,
         type: file.type,
         url: data.publicUrl,
-        thumbnail: thumbData.publicUrl,
+       thumbnail: thumbnailUrl,
         path: fileName,
       },
     ]);
