@@ -238,13 +238,28 @@ async function createImageThumbnail(file) {
   const selectedFiles = Array.from(event.target.files);
 
   for (const file of selectedFiles) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     if (file.type.startsWith("image/")) {
   const thumb = await createImageThumbnail(file);
 
   console.log("Thumbnail:", thumb);
+
+const thumbFileName = `${folderName}/thumb-${Date.now()}-${safeName}.webp`;
+
+const { error: thumbError } = await supabase.storage
+  .from("memories")
+  .upload(thumbFileName, thumb);
+
+if (thumbError) {
+  console.error("Thumbnail upload error:", thumbError);
 }
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  
+
+const { data: thumbData } = supabase.storage
+  .from("memories")
+  .getPublicUrl(thumbFileName);
+
+console.log("Thumbnail URL:", thumbData.publicUrl);
+}
 const fileName = `${folderName}/${Date.now()}-${safeName}`;
 
     const { error } = await supabase.storage
