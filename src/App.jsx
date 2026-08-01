@@ -282,6 +282,7 @@ console.log(data.publicUrl);
         name: file.name,
         type: file.type,
         url: data.publicUrl,
+        thumbnail: thumbData.publicUrl,
         path: fileName,
       },
     ]);
