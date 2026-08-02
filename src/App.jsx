@@ -236,144 +236,228 @@ async function createImageThumbnail(file) {
 }
 async function createVideoThumbnail(file) {
   return new Promise((resolve, reject) => {
-
     const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    let settled = false;
+
+    const cleanup = () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    const finishError = (message) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      cleanup();
+      reject(new Error(message));
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      finishError("Quá thời gian tạo thumbnail video");
+    }, 12000);
 
     video.preload = "metadata";
     video.muted = true;
     video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
 
-    video.onloadeddata = () => {
+    video.onloadedmetadata = () => {
+      if (!video.videoWidth || !video.videoHeight) {
+        finishError("Không đọc được kích thước video");
+        return;
+      }
 
-      video.currentTime = 0;
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      const captureTime = duration > 0 ? Math.min(0.2, duration / 2) : 0.1;
 
+      try {
+        video.currentTime = captureTime;
+      } catch {
+        finishError("Không thể lấy khung hình video");
+      }
     };
 
     video.onseeked = () => {
+      if (settled) return;
 
-      const canvas = document.createElement("canvas");
+      try {
+        const SIZE = 500;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
-      const SIZE = 500;
+        if (!ctx) {
+          finishError("Không tạo được canvas");
+          return;
+        }
 
-      canvas.width = SIZE;
-      canvas.height = SIZE;
+        canvas.width = SIZE;
+        canvas.height = SIZE;
 
-      const ctx = canvas.getContext("2d");
+        const scale = Math.max(
+          SIZE / video.videoWidth,
+          SIZE / video.videoHeight
+        );
+        const width = video.videoWidth * scale;
+        const height = video.videoHeight * scale;
+        const x = (SIZE - width) / 2;
+        const y = (SIZE - height) / 2;
 
-      const scale = Math.max(
-        SIZE / video.videoWidth,
-        SIZE / video.videoHeight
-      );
+        ctx.drawImage(video, x, y, width, height);
 
-      const width = video.videoWidth * scale;
-      const height = video.videoHeight * scale;
+        canvas.toBlob(
+          (blob) => {
+            if (settled) return;
 
-      const x = (SIZE - width) / 2;
-      const y = (SIZE - height) / 2;
+            if (!blob) {
+              finishError("Không tạo được thumbnail video");
+              return;
+            }
 
-      ctx.drawImage(video, x, y, width, height);
-
-      canvas.toBlob(
-
-        (blob) => {
-
-          URL.revokeObjectURL(video.src);
-
-          resolve(blob);
-
-        },
-
-        "image/webp",
-
-        0.82
-
-      );
-
+            settled = true;
+            clearTimeout(timeoutId);
+            cleanup();
+            resolve(blob);
+          },
+          "image/webp",
+          0.8
+        );
+      } catch {
+        finishError("Trình duyệt không hỗ trợ tạo thumbnail video này");
+      }
     };
 
-    video.onerror = reject;
+    video.onerror = () => {
+      finishError("Không đọc được định dạng video");
+    };
 
-    video.src = URL.createObjectURL(file);
-
+    video.src = objectUrl;
+    video.load();
   });
 }
-  async function uploadFiles(event) {
-  const selectedFiles = Array.from(event.target.files);
+async function uploadFiles(event) {
+  const selectedFiles = Array.from(event.target.files || []);
 
   for (const file of selectedFiles) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const uploadId = Date.now();
-    let thumbnailUrl = null;
-    if (file.type.startsWith("image/")) {
-  const thumb = await createImageThumbnail(file);
+    const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  console.log("Thumbnail:", thumb);
- const thumbFileName =
-  `${folderName}/thumb-${uploadId}-${safeName}.webp`;
-const { error: thumbError } = await supabase.storage
-  .from("memories")
-  .upload(thumbFileName, thumb);
+    const isImage =
+      file.type.startsWith("image/") ||
+      /\.(jpg|jpeg|png|gif|webp|heic)$/i.test(file.name);
 
-if (thumbError) {
-  console.error("Thumbnail upload error:", thumbError);
-}
+    const isVideo =
+      file.type.startsWith("video/") ||
+      /\.(mp4|mov|m4v|webm)$/i.test(file.name);
 
-const { data: thumbData } = supabase.storage
-  .from("memories")
-  .getPublicUrl(thumbFileName);
-thumbnailUrl = thumbData.publicUrl;
-console.log("Thumbnail URL:", thumbnailUrl);
-}
-if (file.type.startsWith("video/")) {
-  const videoThumb = await createVideoThumbnail(file);
-
-  console.log("Video Thumbnail:", videoThumb);
-  const videoThumbFileName =
-  `${folderName}/thumb-video-${uploadId}-${safeName}.webp`;
-  const { error: videoThumbError } = await supabase.storage
-    .from("memories")
-    .upload(videoThumbFileName, videoThumb);
-
-  if (videoThumbError) {
-    console.error("Video thumbnail upload error:", videoThumbError);
-  } else {
-    const { data: videoThumbData } = supabase.storage
-      .from("memories")
-      .getPublicUrl(videoThumbFileName);
-
-    thumbnailUrl = videoThumbData.publicUrl;
-
-    console.log("Video Thumbnail URL:", thumbnailUrl);
-  }
-}
-const fileName = `${folderName}/${uploadId}-${safeName}`;
-
-    const { error } = await supabase.storage
-      .from("memories")
-      .upload(fileName, file);
-
-    if (error) {
-      console.error(error);
-      alert(error.message);
+    if (!isImage && !isVideo) {
+      alert(`Định dạng của "${file.name}" chưa được hỗ trợ.`);
       continue;
     }
 
-    const { data } = supabase.storage
-      .from("memories")
-      .getPublicUrl(fileName);
-console.log(data.publicUrl);
-    setFiles((current) => [
-      ...current,
-      {
-        name: file.name,
-        type: file.type,
-        url: data.publicUrl,
-       thumbnail: thumbnailUrl,
-        path: fileName,
-      },
-    ]);
+    const fileName = `${folderName}/${uploadId}-${safeName}`;
+    let thumbnailUrl = null;
+
+    try {
+      // Luôn tải file gốc trước. Thumbnail có lỗi thì file vẫn được lưu.
+      const { error: uploadError } = await supabase.storage
+        .from("memories")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error("File upload error:", uploadError);
+        alert(`Không tải được "${file.name}": ${uploadError.message}`);
+        continue;
+      }
+
+      const { data: fileUrlData } = supabase.storage
+        .from("memories")
+        .getPublicUrl(fileName);
+
+      if (isImage) {
+        try {
+          const imageThumb = await createImageThumbnail(file);
+
+          if (imageThumb) {
+            const imageThumbName =
+              `${folderName}/thumb-${uploadId}-${safeName}.webp`;
+
+            const { error: imageThumbError } = await supabase.storage
+              .from("memories")
+              .upload(imageThumbName, imageThumb);
+
+            if (!imageThumbError) {
+              const { data: imageThumbData } = supabase.storage
+                .from("memories")
+                .getPublicUrl(imageThumbName);
+
+              thumbnailUrl = imageThumbData.publicUrl;
+            } else {
+              console.warn("Image thumbnail upload error:", imageThumbError);
+            }
+          }
+        } catch (thumbnailError) {
+          console.warn(
+            "Không tạo được thumbnail ảnh, vẫn giữ ảnh gốc:",
+            thumbnailError
+          );
+        }
+      }
+
+      if (isVideo) {
+        try {
+          const videoThumb = await createVideoThumbnail(file);
+
+          if (videoThumb) {
+            const videoThumbName =
+              `${folderName}/thumb-video-${uploadId}-${safeName}.webp`;
+
+            const { error: videoThumbError } = await supabase.storage
+              .from("memories")
+              .upload(videoThumbName, videoThumb);
+
+            if (!videoThumbError) {
+              const { data: videoThumbData } = supabase.storage
+                .from("memories")
+                .getPublicUrl(videoThumbName);
+
+              thumbnailUrl = videoThumbData.publicUrl;
+            } else {
+              console.warn("Video thumbnail upload error:", videoThumbError);
+            }
+          }
+        } catch (thumbnailError) {
+          console.warn(
+            "Không tạo được thumbnail video, vẫn giữ video gốc:",
+            thumbnailError
+          );
+        }
+      }
+
+      setFiles((current) => [
+        ...current,
+        {
+          name: file.name,
+          type:
+            file.type ||
+            (isVideo ? "video/mp4" : isImage ? "image/jpeg" : ""),
+          url: fileUrlData.publicUrl,
+          thumbnail: thumbnailUrl,
+          path: fileName,
+        },
+      ]);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert(`Có lỗi khi tải "${file.name}". Vui lòng thử lại.`);
+    }
   }
+
+  event.target.value = "";
 }
+
 async function deleteFile(fileToDelete) {
   const ok = window.confirm(`Xóa "${fileToDelete.name}"?`);
 
