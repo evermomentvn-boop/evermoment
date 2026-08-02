@@ -720,32 +720,45 @@ async function loadFiles(folder) {
     cursor: "pointer",
   }}
 >
- <img
-  src={file.thumbnail || file.url}
-  alt={file.name}
-  style={{
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    pointerEvents: "none",
-  }}
-/>
-  <div
+{file.thumbnail ? (
+  <img
+    src={file.thumbnail}
+    alt={file.name}
+    loading="lazy"
     style={{
-      position: "absolute",
-      inset: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "rgba(0,0,0,0.12)",
-      color: "white",
-      fontSize: "30px",
-      textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+      display: "block",
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
       pointerEvents: "none",
     }}
-  >
-    ▶
-  </div>
+  />
+) : (
+  <div
+    style={{
+      width: "100%",
+      height: "100%",
+      background: "#222",
+    }}
+  />
+)}
+
+<div
+  style={{
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(0,0,0,0.12)",
+    color: "white",
+    fontSize: "30px",
+    textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+    pointerEvents: "none",
+  }}
+>
+  {file.type?.startsWith("video") ? "▶" : ""}
+</div>
 </div>
                 )}
 
