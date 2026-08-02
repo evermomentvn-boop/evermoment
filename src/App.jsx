@@ -234,19 +234,82 @@ async function createImageThumbnail(file) {
     img.src = URL.createObjectURL(file);
   });
 }
+async function createVideoThumbnail(file) {
+  return new Promise((resolve, reject) => {
+
+    const video = document.createElement("video");
+
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadeddata = () => {
+
+      video.currentTime = 0;
+
+    };
+
+    video.onseeked = () => {
+
+      const canvas = document.createElement("canvas");
+
+      const SIZE = 500;
+
+      canvas.width = SIZE;
+      canvas.height = SIZE;
+
+      const ctx = canvas.getContext("2d");
+
+      const scale = Math.max(
+        SIZE / video.videoWidth,
+        SIZE / video.videoHeight
+      );
+
+      const width = video.videoWidth * scale;
+      const height = video.videoHeight * scale;
+
+      const x = (SIZE - width) / 2;
+      const y = (SIZE - height) / 2;
+
+      ctx.drawImage(video, x, y, width, height);
+
+      canvas.toBlob(
+
+        (blob) => {
+
+          URL.revokeObjectURL(video.src);
+
+          resolve(blob);
+
+        },
+
+        "image/webp",
+
+        0.82
+
+      );
+
+    };
+
+    video.onerror = reject;
+
+    video.src = URL.createObjectURL(file);
+
+  });
+}
   async function uploadFiles(event) {
   const selectedFiles = Array.from(event.target.files);
 
   for (const file of selectedFiles) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const uploadId = Date.now();
     let thumbnailUrl = null;
     if (file.type.startsWith("image/")) {
   const thumb = await createImageThumbnail(file);
 
   console.log("Thumbnail:", thumb);
-
-const thumbFileName = `${folderName}/thumb-${Date.now()}-${safeName}.webp`;
-
+ const thumbFileName =
+  `${folderName}/thumb-${uploadId}-${safeName}.webp`;
 const { error: thumbError } = await supabase.storage
   .from("memories")
   .upload(thumbFileName, thumb);
@@ -261,7 +324,29 @@ const { data: thumbData } = supabase.storage
 thumbnailUrl = thumbData.publicUrl;
 console.log("Thumbnail URL:", thumbnailUrl);
 }
-const fileName = `${folderName}/${Date.now()}-${safeName}`;
+if (file.type.startsWith("video/")) {
+  const videoThumb = await createVideoThumbnail(file);
+
+  console.log("Video Thumbnail:", videoThumb);
+  const videoThumbFileName =
+  `${folderName}/thumb-video-${uploadId}-${safeName}.webp`;
+  const { error: videoThumbError } = await supabase.storage
+    .from("memories")
+    .upload(videoThumbFileName, videoThumb);
+
+  if (videoThumbError) {
+    console.error("Video thumbnail upload error:", videoThumbError);
+  } else {
+    const { data: videoThumbData } = supabase.storage
+      .from("memories")
+      .getPublicUrl(videoThumbFileName);
+
+    thumbnailUrl = videoThumbData.publicUrl;
+
+    console.log("Video Thumbnail URL:", thumbnailUrl);
+  }
+}
+const fileName = `${folderName}/${uploadId}-${safeName}`;
 
     const { error } = await supabase.storage
       .from("memories")
@@ -327,8 +412,16 @@ async function loadFiles(folder) {
     return;
   }
 
-  const loadedFiles = data
-    .filter((item) => item.id)
+  const validItems = data.filter((item) => item.id);
+  const allNames = new Set(validItems.map((item) => item.name));
+
+  const loadedFiles = validItems
+    // Không hiện thumbnail thành một ô riêng
+    .filter(
+      (item) =>
+        !item.name.startsWith("thumb-") &&
+        !item.name.startsWith("thumb-video-")
+    )
     .map((item) => {
       const path = `${folder}/${item.name}`;
 
@@ -336,10 +429,35 @@ async function loadFiles(folder) {
         .from("memories")
         .getPublicUrl(path);
 
+      const type = item.metadata?.mimetype || "";
+      let thumbnail = null;
+
+      const imageThumbName = `thumb-${item.name}.webp`;
+      const videoThumbName = `thumb-video-${item.name}.webp`;
+
+      let matchingThumbName = null;
+
+      if (type.startsWith("image/") && allNames.has(imageThumbName)) {
+        matchingThumbName = imageThumbName;
+      }
+
+      if (type.startsWith("video/") && allNames.has(videoThumbName)) {
+        matchingThumbName = videoThumbName;
+      }
+
+      if (matchingThumbName) {
+        const { data: thumbUrlData } = supabase.storage
+          .from("memories")
+          .getPublicUrl(`${folder}/${matchingThumbName}`);
+
+        thumbnail = thumbUrlData.publicUrl;
+      }
+
       return {
         name: item.name,
-        type: item.metadata?.mimetype || "",
+        type,
         url: urlData.publicUrl,
+        thumbnail,
         path,
       };
     });
@@ -602,22 +720,16 @@ async function loadFiles(folder) {
     cursor: "pointer",
   }}
 >
-  <video
-    src={file.url}
-    muted
-    playsInline
-    preload="auto"
-    onLoadedMetadata={(event) => {
-  event.currentTarget.currentTime = 0.1;
-}}
-    style={{
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      pointerEvents: "none",
-    }}
-  />
-
+ <img
+  src={file.thumbnail || file.url}
+  alt={file.name}
+  style={{
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    pointerEvents: "none",
+  }}
+/>
   <div
     style={{
       position: "absolute",
