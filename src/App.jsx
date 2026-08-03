@@ -338,6 +338,51 @@ async function createVideoThumbnail(file) {
     video.load();
   });
 }
+
+function isMobileBrowser() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+async function createFallbackVideoThumbnail(fileName) {
+  return new Promise((resolve, reject) => {
+    const SIZE = 500;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      reject(new Error("Không tạo được ảnh đại diện mặc định"));
+      return;
+    }
+
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+
+    ctx.fillStyle = "#202124";
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 92px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("▶", SIZE / 2, SIZE / 2 - 18);
+
+    ctx.font = "24px Arial";
+    ctx.fillText("VIDEO", SIZE / 2, SIZE / 2 + 86);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error(`Không tạo được ảnh đại diện cho ${fileName}`));
+          return;
+        }
+        resolve(blob);
+      },
+      "image/webp",
+      0.8
+    );
+  });
+}
+
 async function uploadFiles(event) {
   const selectedFiles = Array.from(event.target.files || []);
 
@@ -363,9 +408,22 @@ async function uploadFiles(event) {
 
     try {
       // Luôn tải file gốc trước. Thumbnail có lỗi thì file vẫn được lưu.
+      let uploadBody = file;
+
+      // Trên điện thoại, đọc video thành ArrayBuffer trước khi gửi.
+      // Cách này ổn định hơn với một số video TikTok mà trình duyệt di động
+      // không truyền trực tiếp đối tượng File tốt như trên máy tính.
+      if (isVideo && isMobileBrowser()) {
+        uploadBody = await file.arrayBuffer();
+      }
+
       const { error: uploadError } = await supabase.storage
         .from("memories")
-        .upload(fileName, file);
+        .upload(fileName, uploadBody, {
+          contentType: file.type || (isVideo ? "video/mp4" : undefined),
+          cacheControl: "3600",
+          upsert: false,
+        });
 
       if (uploadError) {
         console.error("File upload error:", uploadError);
@@ -408,30 +466,46 @@ async function uploadFiles(event) {
       }
 
       if (isVideo) {
+        const videoThumbName =
+          `${folderName}/thumb-video-${uploadId}-${safeName}.webp`;
+
         try {
-          const videoThumb = await createVideoThumbnail(file);
+          let videoThumb;
 
-          if (videoThumb) {
-            const videoThumbName =
-              `${folderName}/thumb-video-${uploadId}-${safeName}.webp`;
+          try {
+            // Ưu tiên ảnh tĩnh lấy từ chính video.
+            videoThumb = await createVideoThumbnail(file);
+          } catch (thumbnailError) {
+            // Nếu trình duyệt không giải mã được video TikTok, vẫn tạo một
+            // ảnh tĩnh mặc định để mọi video luôn có ảnh đại diện.
+            console.warn(
+              "Không lấy được khung hình video, dùng ảnh đại diện mặc định:",
+              thumbnailError
+            );
+            videoThumb = await createFallbackVideoThumbnail(file.name);
+          }
 
-            const { error: videoThumbError } = await supabase.storage
+          const { error: videoThumbError } = await supabase.storage
+            .from("memories")
+            .upload(videoThumbName, videoThumb, {
+              contentType: "image/webp",
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (!videoThumbError) {
+            const { data: videoThumbData } = supabase.storage
               .from("memories")
-              .upload(videoThumbName, videoThumb);
+              .getPublicUrl(videoThumbName);
 
-            if (!videoThumbError) {
-              const { data: videoThumbData } = supabase.storage
-                .from("memories")
-                .getPublicUrl(videoThumbName);
-
-              thumbnailUrl = videoThumbData.publicUrl;
-            } else {
-              console.warn("Video thumbnail upload error:", videoThumbError);
-            }
+            thumbnailUrl = videoThumbData.publicUrl;
+          } else {
+            console.warn("Video thumbnail upload error:", videoThumbError);
           }
         } catch (thumbnailError) {
+          // Video gốc đã upload xong nên không bao giờ bị mất chỉ vì thumbnail.
           console.warn(
-            "Không tạo được thumbnail video, vẫn giữ video gốc:",
+            "Không tạo được ảnh đại diện video, vẫn giữ video gốc:",
             thumbnailError
           );
         }
