@@ -1,6 +1,7 @@
 import { supabase } from "../supabase";
 import { createImageThumbnail } from "../utils/imageThumbnail";
 import { createVideoThumbnail } from "../utils/videoThumbnail";
+import { compressVideoForUpload } from "./videoCompressionService";
 
 function getFileType(file) {
   const isImage =
@@ -55,7 +56,11 @@ function createFallbackVideoThumbnail() {
   });
 }
 
-export async function uploadFile(file, folderName) {
+export async function uploadFile(
+  file,
+  folderName,
+  { onStatus } = {}
+) {
   if (!file || !folderName) {
     throw new Error("Thiếu file hoặc tên thư mục.");
   }
@@ -66,20 +71,50 @@ export async function uploadFile(file, folderName) {
     throw new Error(`Định dạng "${file.name}" chưa được hỗ trợ.`);
   }
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  /*
+   * PHẦN MỚI DUY NHẤT:
+   * - Ảnh giữ nguyên.
+   * - Video dưới hoặc bằng 25 MB giữ nguyên.
+   * - Video trên 25 MB được tối ưu trước khi upload.
+   */
+  let fileToUpload = file;
+
+  if (isVideo) {
+    fileToUpload = await compressVideoForUpload(file, {
+  onStatus: (status) => {
+    console.log("EverMoment video status:", status);
+    onStatus?.(status);
+  },
+});
+  }
+
+  const safeName = fileToUpload.name.replace(
+    /[^a-zA-Z0-9._-]/g,
+    "_"
+  );
+
   const uploadId =
     `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const storedName = `${uploadId}-${safeName}`;
   const filePath = `${folderName}/${storedName}`;
 
-  // 1. Luôn tải file gốc trước
+  // 1. Tải file lên Supabase như logic cũ
+  onStatus?.({
+  stage: "uploading",
+  progress: null,
+  message: "Đang tải video lên kho ký ức…",
+});
   const { error: uploadError } = await supabase.storage
     .from("memories")
-    .upload(filePath, file, {
+    .upload(filePath, fileToUpload, {
       contentType:
-        file.type ||
-        (isVideo ? "video/mp4" : isImage ? "image/jpeg" : undefined),
+        fileToUpload.type ||
+        (isVideo
+          ? "video/mp4"
+          : isImage
+            ? "image/jpeg"
+            : undefined),
       cacheControl: "3600",
       upsert: false,
     });
@@ -93,51 +128,65 @@ export async function uploadFile(file, folderName) {
     .getPublicUrl(filePath);
 
   let thumbnailUrl = null;
+  onStatus?.({
+  stage: "thumbnail",
+  progress: null,
+  message: "Đang tạo ảnh đại diện…",
+});
 
-  // 2. Tạo thumbnail sau, lỗi cũng không làm mất file gốc
+  // 2. Tạo thumbnail sau, lỗi cũng không làm mất file đã upload
   try {
     let thumbnailBlob = null;
     let thumbnailName = "";
 
     if (isImage) {
-      thumbnailBlob = await createImageThumbnail(file);
+      thumbnailBlob = await createImageThumbnail(fileToUpload);
       thumbnailName = `thumb-${storedName}.webp`;
     }
 
     if (isVideo) {
       try {
-        thumbnailBlob = await createVideoThumbnail(file);
+        thumbnailBlob =
+        await createVideoThumbnail(file);
       } catch (error) {
         console.warn(
           "Không lấy được khung hình thật, dùng ảnh video mặc định:",
           error
         );
 
-        thumbnailBlob = await createFallbackVideoThumbnail();
+        thumbnailBlob =
+          await createFallbackVideoThumbnail();
       }
 
-      thumbnailName = `thumb-video-${storedName}.webp`;
+      thumbnailName =
+        `thumb-video-${storedName}.webp`;
     }
 
     if (thumbnailBlob && thumbnailName) {
-      const thumbnailPath = `${folderName}/${thumbnailName}`;
+      const thumbnailPath =
+        `${folderName}/${thumbnailName}`;
 
-      const { error: thumbnailError } = await supabase.storage
-        .from("memories")
-        .upload(thumbnailPath, thumbnailBlob, {
-          contentType: "image/webp",
-          cacheControl: "3600",
-          upsert: false,
-        });
+      const { error: thumbnailError } =
+        await supabase.storage
+          .from("memories")
+          .upload(thumbnailPath, thumbnailBlob, {
+            contentType: "image/webp",
+            cacheControl: "3600",
+            upsert: false,
+          });
 
       if (!thumbnailError) {
-        const { data: thumbnailData } = supabase.storage
-          .from("memories")
-          .getPublicUrl(thumbnailPath);
+        const { data: thumbnailData } =
+          supabase.storage
+            .from("memories")
+            .getPublicUrl(thumbnailPath);
 
         thumbnailUrl = thumbnailData.publicUrl;
       } else {
-        console.warn("Thumbnail upload error:", thumbnailError);
+        console.warn(
+          "Thumbnail upload error:",
+          thumbnailError
+        );
       }
     }
   } catch (thumbnailError) {
@@ -146,12 +195,21 @@ export async function uploadFile(file, folderName) {
       thumbnailError
     );
   }
-
+onStatus?.({
+  stage: "finished",
+  progress: 100,
+  message: "Đã lưu vào kho ký ức.",
+});
   return {
+    // Giữ tên mà khách đã chọn như logic cũ
     name: file.name,
     type:
-      file.type ||
-      (isVideo ? "video/mp4" : isImage ? "image/jpeg" : ""),
+      fileToUpload.type ||
+      (isVideo
+        ? "video/mp4"
+        : isImage
+          ? "image/jpeg"
+          : ""),
     url: fileUrlData.publicUrl,
     thumbnail: thumbnailUrl,
     path: filePath,

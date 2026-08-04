@@ -18,7 +18,26 @@ function getTouchDistance(touches) {
 function isVideoFile(file) {
   return file?.type?.startsWith("video/");
 }
+function isInteractiveControl(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
 
+  return Boolean(
+    target.closest(
+      [
+        ".mobile-gallery-toolbar",
+        ".mobile-sheet-overlay",
+        ".mobile-gallery-sheet",
+        ".gallery-toolbar",
+        ".gallery-desktop-arrow",
+        "button",
+        "input",
+        "video",
+      ].join(",")
+    )
+  );
+}
 function GalleryViewer({
   media,
   selectedIndex,
@@ -47,6 +66,7 @@ function GalleryViewer({
     pinchStartDistance: 0,
     pinchStartScale: 1,
     startedOnVideoControls: false,
+    ignoreGesture: false,
   });
 
   const lastTapRef = useRef(0);
@@ -250,6 +270,16 @@ function GalleryViewer({
 
   function handleTouchStart(event) {
     const target = event.target;
+    if (isInteractiveControl(target)) {
+  gestureRef.current.ignoreGesture = true;
+  gestureRef.current.direction = null;
+  gestureRef.current.pinching = false;
+
+  setIsDragging(false);
+  return;
+}
+
+gestureRef.current.ignoreGesture = false;
 
     gestureRef.current.startedOnVideoControls =
       target instanceof HTMLElement &&
@@ -281,6 +311,9 @@ function GalleryViewer({
   }
 
   function handleTouchMove(event) {
+    if (gestureRef.current.ignoreGesture) {
+  return;
+}
     if (
       gestureRef.current.pinching &&
       event.touches.length === 2 &&
@@ -384,6 +417,14 @@ function GalleryViewer({
   }
 
   function finishGesture() {
+    if (gestureRef.current.ignoreGesture) {
+  gestureRef.current.ignoreGesture = false;
+  gestureRef.current.direction = null;
+  gestureRef.current.pinching = false;
+
+  setIsDragging(false);
+  return;
+}
     if (gestureRef.current.pinching) {
       gestureRef.current.pinching = false;
       setIsDragging(false);
@@ -433,8 +474,22 @@ function GalleryViewer({
     finishGesture();
   }
 
-  function handlePointerDown(event) {
-    if (event.pointerType === "touch") return;
+ function handlePointerDown(event) {
+
+  if (event.pointerType === "touch") {
+    return;
+  }
+
+  if (isInteractiveControl(event.target)) {
+    gestureRef.current.ignoreGesture = true;
+    gestureRef.current.direction = null;
+    setIsDragging(false);
+    return;
+  }
+
+  gestureRef.current.ignoreGesture = false;
+
+  // Phần code cũ phía dưới giữ nguyên
 
     // Không biến thao tác điều khiển video thành thao tác kéo.
     if (
@@ -458,6 +513,9 @@ function GalleryViewer({
   }
 
   function handlePointerMove(event) {
+    if (gestureRef.current.ignoreGesture) {
+  return;
+}
     if (
       event.pointerType === "touch" ||
       !isDragging
@@ -564,7 +622,10 @@ function GalleryViewer({
     }
   }
 
-  function handleMediaTap() {
+  function handleMediaTap(event) {
+    if (isInteractiveControl(event?.target)) {
+    return;
+}
     const now = Date.now();
     const timeSinceLastTap = now - lastTapRef.current;
 

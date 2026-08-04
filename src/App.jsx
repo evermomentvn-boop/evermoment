@@ -9,13 +9,28 @@ function App() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [files, setFiles] = useState([]);
+  const [uploadStatus, setUploadStatus] = useState(null);
+const [isUploading, setIsUploading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const [mediaFilter, setMediaFilter] = useState("all");
 
 const mediaFiles = files.filter(
   (file) =>
     file.type.startsWith("image/") ||
     file.type.startsWith("video/")
 );
+
+const filteredMediaFiles = mediaFiles.filter((file) => {
+  if (mediaFilter === "image") {
+    return file.type.startsWith("image/");
+  }
+
+  if (mediaFilter === "video") {
+    return file.type.startsWith("video/");
+  }
+
+  return true;
+});
 const [customerCode, setCustomerCode] = useState("");
 const [customerName, setCustomerName] = useState("");
 const [folderName, setFolderName] = useState("");
@@ -198,26 +213,68 @@ setScreen("memory");
 async function uploadFiles(event) {
   const selectedFiles = Array.from(event.target.files || []);
 
-  for (const file of selectedFiles) {
-    try {
-      const uploadedFile = await uploadFile(file, folderName);
-
-      setFiles((current) => [
-        ...current,
-        uploadedFile,
-      ]);
-    } catch (error) {
-      console.error("Upload failed:", error);
-
-      alert(
-        `Không tải được "${file.name}": ${
-          error?.message || "Vui lòng thử lại."
-        }`
-      );
-    }
+  if (selectedFiles.length === 0) {
+    return;
   }
 
-  event.target.value = "";
+  if (isUploading) {
+    return;
+  }
+
+  setIsUploading(true);
+
+  try {
+    for (const file of selectedFiles) {
+      try {
+        setUploadStatus({
+          stage: "starting",
+          progress: 0,
+          message: "Đang chuẩn bị...",
+          fileName: file.name,
+        });
+
+        const uploadedFile = await uploadFile(
+          file,
+          folderName,
+          {
+            onStatus: (status) => {
+              setUploadStatus({
+                ...status,
+                fileName: file.name,
+              });
+            },
+          }
+        );
+
+        setFiles((current) => [
+          ...current,
+          uploadedFile,
+        ]);
+      } catch (error) {
+        console.error("Upload failed:", error);
+
+        alert(
+          `Không tải được "${file.name}": ${
+            error?.message || "Vui lòng thử lại."
+          }`
+        );
+      }
+    }
+
+    setUploadStatus({
+      stage: "finished",
+      progress: 100,
+      message: "Đã lưu thành công.",
+    });
+
+    setTimeout(() => {
+      setUploadStatus(null);
+    }, 2000);
+
+  } finally {
+    setIsUploading(false);
+    event.target.value = "";
+  }
 }
 
 async function deleteFile(fileToDelete) {
@@ -501,19 +558,158 @@ async function loadFiles(folder) {
   }}
 >
           <h2>Kho ký ức của bạn</h2>
+          {uploadStatus && (
+  <div
+    style={{
+      margin: "18px 0",
+      padding: "16px",
+      borderRadius: "12px",
+      background: "#eef3ff",
+      border: "1px solid #c8d6ff",
+    }}
+  >
+    <div
+      style={{
+        fontWeight: "bold",
+        marginBottom: "8px",
+      }}
+    >
+      {uploadStatus.message}
+    </div>
 
+    {uploadStatus.fileName && (
+      <div
+        style={{
+          fontSize: 13,
+          color: "#666",
+          marginBottom: "10px",
+        }}
+      >
+        {uploadStatus.fileName}
+      </div>
+    )}
+
+    <div
+      style={{
+        width: "100%",
+        height: "10px",
+        background: "#ddd",
+        borderRadius: "999px",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          width: `${
+            uploadStatus.progress ?? 100
+          }%`,
+          height: "100%",
+          background: "#5b6cff",
+          transition: "0.3s",
+        }}
+      />
+    </div>
+
+    {typeof uploadStatus.progress === "number" && (
+      <div
+        style={{
+          marginTop: "6px",
+          fontSize: "13px",
+          textAlign: "right",
+        }}
+      >
+        {uploadStatus.progress}%
+      </div>
+    )}
+  </div>
+)}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+    gap: "8px",
+    marginTop: "18px",
+    marginBottom: "4px",
+  }}
+>
+  <button
+    type="button"
+    onClick={() => {
+      setMediaFilter("all");
+      setSelectedImageIndex(null);
+    }}
+    style={{
+      padding: "10px 18px",
+      borderRadius: "999px",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 600,
+      background:
+        mediaFilter === "all" ? "#5b5cff" : "#ececf3",
+      color:
+        mediaFilter === "all" ? "white" : "#444",
+    }}
+  >
+    Tất cả
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      setMediaFilter("image");
+      setSelectedImageIndex(null);
+    }}
+    style={{
+      padding: "10px 18px",
+      borderRadius: "999px",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 600,
+      background:
+        mediaFilter === "image" ? "#5b5cff" : "#ececf3",
+      color:
+        mediaFilter === "image" ? "white" : "#444",
+    }}
+  >
+    Ảnh
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      setMediaFilter("video");
+      setSelectedImageIndex(null);
+    }}
+    style={{
+      padding: "10px 18px",
+      borderRadius: "999px",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 600,
+      background:
+        mediaFilter === "video" ? "#5b5cff" : "#ececf3",
+      color:
+        mediaFilter === "video" ? "white" : "#444",
+    }}
+  >
+    Video
+  </button>
+</div>
           <label
             style={{
               ...buttonStyle,
               display: "inline-block",
             }}
           >
-            + TẢI ẢNH HOẶC VIDEO
+            {isUploading
+           ? "⏳ ĐANG XỬ LÝ..."
+           : "+ TẢI ẢNH HOẶC VIDEO"}
             <input
               type="file"
               accept="image/*,video/*"
               multiple
               onChange={uploadFiles}
+              disabled={isUploading}
               style={{ display: "none" }}
             />
           </label>
@@ -526,14 +722,14 @@ async function loadFiles(folder) {
     marginTop: "30px",
   }}
 >
-            {files.map((file, index) => (
+            {filteredMediaFiles.map((file, index) => (
               <div key={`${file.name}-${index}`}>
                 {file.type.startsWith("image/") ? (
                   <img
                     src={file.url}
                     alt={file.name}
                     onClick={() => {
-  const mediaIndex = mediaFiles.findIndex(
+  const mediaIndex = filteredMediaFiles.findIndex(
     (mediaFile) => mediaFile.name === file.name
   );
 
@@ -551,7 +747,7 @@ async function loadFiles(folder) {
                 ) : (
                   <div
   onClick={() => {
-    const mediaIndex = mediaFiles.findIndex(
+    const mediaIndex = filteredMediaFiles.findIndex(
       (mediaFile) => mediaFile.name === file.name
     );
 
@@ -616,7 +812,7 @@ async function loadFiles(folder) {
         </div>
       )}
       <GalleryViewer
-  media={mediaFiles}
+  media={filteredMediaFiles}
   selectedIndex={selectedImageIndex}
   setSelectedIndex={setSelectedImageIndex}
   onClose={() => setSelectedImageIndex(null)}
