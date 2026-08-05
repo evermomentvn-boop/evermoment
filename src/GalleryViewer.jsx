@@ -34,7 +34,6 @@ function isInteractiveControl(target) {
         ".gallery-desktop-arrow",
         "button",
         "input",
-        "video",
       ].join(",")
     )
   );
@@ -536,14 +535,6 @@ gestureRef.current.didMove = false;
 
   // Phần code cũ phía dưới giữ nguyên
 
-    // Không biến thao tác điều khiển video thành thao tác kéo.
-    if (
-      event.target instanceof HTMLElement &&
-      event.target.closest("video")
-    ) {
-      return;
-    }
-
     gestureRef.current.startX = event.clientX;
     gestureRef.current.startY = event.clientY;
     gestureRef.current.lastX = event.clientX;
@@ -829,11 +820,13 @@ transformStyle: "preserve-3d",
 >
   {itemIsVideo ? (
     <MobileVideoPlayer
-      src={item.url}
-      setVideoRef={(element) => {
-        videoRefs.current[index] = element;
-      }}
-    />
+  src={item.url}
+  controlsVisible={showControls && dragY < 18}
+  onMediaTap={handleMediaTap}
+  setVideoRef={(element) => {
+    videoRefs.current[index] = element;
+  }}
+/>
   ) : (
     <img
       src={item.url}

@@ -17,6 +17,8 @@ function formatTime(seconds) {
 function MobileVideoPlayer({
   src,
   setVideoRef,
+  controlsVisible = true,
+  onMediaTap,
 }) {
   const videoRef = useRef(null);
   const isSeekingRef = useRef(false);
@@ -56,20 +58,33 @@ function MobileVideoPlayer({
   function stopGalleryGesture(event) {
     event.stopPropagation();
   }
+  function handleVideoTap(event) {
+  event.stopPropagation();
+  onMediaTap?.(event);
+}
 
-  function handleLoadedMetadata() {
-    const video = videoRef.current;
+  async function handleLoadedMetadata() {
+  const video = videoRef.current;
 
-    if (!video) return;
+  if (!video) return;
 
-    setDuration(
-      Number.isFinite(video.duration)
-        ? video.duration
-        : 0
-    );
+  setDuration(
+    Number.isFinite(video.duration)
+      ? video.duration
+      : 0
+  );
 
-    setIsReady(true);
+  setIsReady(true);
+
+  // Chỉ tự phát trên điện thoại
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    try {
+      await video.play();
+    } catch (error) {
+      console.warn("Không thể tự phát:", error);
+    }
   }
+}
 
   function handleTimeUpdate() {
     const video = videoRef.current;
@@ -129,15 +144,9 @@ function MobileVideoPlayer({
 
   return (
     <div
-      className="evermoment-video-player"
-      onClick={stopGalleryGesture}
-      onTouchStart={stopGalleryGesture}
-      onTouchMove={stopGalleryGesture}
-      onTouchEnd={stopGalleryGesture}
-      onPointerDown={stopGalleryGesture}
-      onPointerMove={stopGalleryGesture}
-      onPointerUp={stopGalleryGesture}
-    >
+  className="evermoment-video-player"
+  onClick={handleVideoTap}
+>
       <video
         ref={videoRef}
         src={src}
@@ -148,11 +157,14 @@ function MobileVideoPlayer({
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
-        onClick={togglePlayback}
         className="evermoment-video-element"
       />
 
-      <div className="evermoment-video-controls">
+      <div
+  className={`evermoment-video-controls ${
+    controlsVisible ? "is-visible" : "is-hidden"
+  }`}
+>
         <button
           type="button"
           className="evermoment-video-play"
