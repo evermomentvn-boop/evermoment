@@ -557,7 +557,7 @@ async function loadFiles(folder) {
     maxWidth: "1400px",
   }}
 >
-          <h2>Kho ký ức của bạn-test</h2>
+          <h2>Kho ký ức của bạn</h2>
           {uploadStatus && (
   <div
     style={{
