@@ -22,24 +22,27 @@ function MobileVideoPlayer({
 }) {
   const videoRef = useRef(null);
   const isSeekingRef = useRef(false);
+  const setVideoRefCallbackRef = useRef(setVideoRef);
 
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
-
+useEffect(() => {
+  setVideoRefCallbackRef.current = setVideoRef;
+}, [setVideoRef]);
   useEffect(() => {
-    const video = videoRef.current;
+  const video = videoRef.current;
 
-    if (!video) return undefined;
+  if (!video) return undefined;
 
-    setVideoRef?.(video);
+  setVideoRefCallbackRef.current?.(video);
 
-    return () => {
-      video.pause();
-      setVideoRef?.(null);
-    };
-  }, [setVideoRef]);
+  return () => {
+    video.pause();
+    setVideoRefCallbackRef.current?.(null);
+  };
+}, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -150,6 +153,7 @@ function MobileVideoPlayer({
       <video
         ref={videoRef}
         src={src}
+        onClick={(e) => e.stopPropagation()}
         playsInline
         preload="metadata"
         onLoadedMetadata={handleLoadedMetadata}
