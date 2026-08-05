@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import MobileGalleryToolbar from "./MobileGalleryToolbar";
+import MobileVideoPlayer from "./MobileVideoPlayer";
 const SWIPE_THRESHOLD = 70;
 const CLOSE_THRESHOLD = 120;
 const MAX_SCALE = 4;
@@ -67,9 +68,11 @@ function GalleryViewer({
     pinchStartScale: 1,
     startedOnVideoControls: false,
     ignoreGesture: false,
+    didMove: false,
   });
 
   const lastTapRef = useRef(0);
+  const tapTimeoutRef = useRef(null);
   const videoRefs = useRef([]);
 
   const currentMedia =
@@ -173,7 +176,46 @@ function GalleryViewer({
     stopAllVideos();
     resetTransform();
   }, [selectedIndex]);
+  useEffect(() => {
+  if (selectedIndex === null || media.length === 0) {
+    return undefined;
+  }
 
+  const imageObjects = [];
+
+  const nearbyIndexes = [
+    selectedIndex - 1,
+    selectedIndex + 1,
+  ];
+
+  nearbyIndexes.forEach((index) => {
+    const item = media[index];
+
+    if (!item || isVideoFile(item) || !item.url) {
+      return;
+    }
+
+    const image = new Image();
+    image.decoding = "async";
+    image.src = item.url;
+
+    imageObjects.push(image);
+  });
+
+  return () => {
+    imageObjects.forEach((image) => {
+      image.src = "";
+    });
+  };
+}, [selectedIndex, media]);
+useEffect(() => {
+  return () => {
+    if (tapTimeoutRef.current) {
+      window.clearTimeout(tapTimeoutRef.current);
+      tapTimeoutRef.current = null;
+    }
+  };
+}, []);
   async function saveCurrentMedia() {
     if (!currentMedia || isSaving) return;
 
@@ -280,6 +322,7 @@ function GalleryViewer({
 }
 
 gestureRef.current.ignoreGesture = false;
+gestureRef.current.didMove = false;
 
     gestureRef.current.startedOnVideoControls =
       target instanceof HTMLElement &&
@@ -387,7 +430,9 @@ gestureRef.current.ignoreGesture = false;
         gestureRef.current.direction = "vertical";
       }
     }
-
+    if (gestureRef.current.direction) {
+  gestureRef.current.didMove = true;
+    }
     if (gestureRef.current.direction === "horizontal") {
       event.preventDefault();
 
@@ -623,29 +668,46 @@ gestureRef.current.ignoreGesture = false;
   }
 
   function handleMediaTap(event) {
-    if (isInteractiveControl(event?.target)) {
+  if (isInteractiveControl(event?.target)) {
     return;
-}
-    const now = Date.now();
-    const timeSinceLastTap = now - lastTapRef.current;
-
-    if (
-      timeSinceLastTap < 280 &&
-      !currentIsVideo
-    ) {
-      handleDoubleClick();
-      lastTapRef.current = 0;
-      return;
-    }
-
-    lastTapRef.current = now;
-
-    window.setTimeout(() => {
-      if (Date.now() - lastTapRef.current >= 260) {
-        setShowControls((visible) => !visible);
-      }
-    }, 270);
   }
+
+  // Nếu vừa vuốt thì không hiểu nhầm thành một lần chạm.
+  if (gestureRef.current.didMove) {
+    gestureRef.current.didMove = false;
+    return;
+  }
+
+  const now = Date.now();
+  const timeSinceLastTap =
+    now - lastTapRef.current;
+
+  // Hủy timer cũ để tránh nút tự ẩn/hiện muộn.
+  if (tapTimeoutRef.current) {
+    window.clearTimeout(tapTimeoutRef.current);
+    tapTimeoutRef.current = null;
+  }
+
+  // Hai lần chạm nhanh: zoom ảnh, không ẩn toolbar.
+  if (
+    timeSinceLastTap < 280 &&
+    !currentIsVideo
+  ) {
+    handleDoubleClick();
+    lastTapRef.current = 0;
+    return;
+  }
+
+  lastTapRef.current = now;
+
+  // Một lần chạm: ẩn hoặc hiện toolbar.
+  tapTimeoutRef.current = window.setTimeout(() => {
+    setShowControls((current) => !current);
+
+    lastTapRef.current = 0;
+    tapTimeoutRef.current = null;
+  }, 220);
+}
 
   if (
     selectedIndex === null ||
@@ -711,11 +773,11 @@ gestureRef.current.ignoreGesture = false;
             width: "100%",
             height: "100%",
             transform: `translate3d(calc(-${
-              selectedIndex * 100
-            }% + ${dragX}px), ${dragY}px, 0) scale(${verticalScale})`,
+            selectedIndex * 100
+            }% + ${dragX}px), 0, 0)`,
             transition: isDragging
-              ? "none"
-              : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+            ? "none"
+            : "transform 360ms cubic-bezier(0.16, 1, 0.3, 1)",
             willChange: "transform",
           }}
         >
@@ -741,58 +803,73 @@ gestureRef.current.ignoreGesture = false;
                 }}
                 onClick={handleMediaTap}
               >
-                {itemIsVideo ? (
-                  <video
-                    ref={(element) => {
-                      videoRefs.current[index] = element;
-                    }}
-                    src={item.url}
-                    controls
-                    playsInline
-                    preload={
-                      Math.abs(index - selectedIndex) <= 1
-                        ? "metadata"
-                        : "none"
-                    }
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                      background: "black",
-                    }}
-                  />
-                ) : (
-                  <img
-                    src={item.url}
-                    alt={item.name || "Ảnh EverMoment"}
-                    draggable
-                    onContextMenu={(event) => {
-                      event.stopPropagation();
-                    }}
-                    loading={
-                      Math.abs(index - selectedIndex) <= 1
-                        ? "eager"
-                        : "lazy"
-                    }
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                      userSelect: "auto",
-                      WebkitUserDrag: "auto",
-                      WebkitTouchCallout: "default",
-                      transform: isCurrentItem
-                        ? `translate3d(${imageX}px, ${imageY}px, 0) scale(${scale})`
-                        : "none",
-                      transition:
-                        isCurrentItem && !isDragging
-                          ? "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)"
-                          : "none",
-                      transformOrigin: "center center",
-                      willChange: "transform",
-                    }}
-                  />
-                )}
+                <div
+  style={{
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+
+    transform: isCurrentItem
+      ? `translate3d(0, ${dragY}px, 0) scale(${verticalScale})`
+      : "none",
+
+    transition:
+      isCurrentItem && !isDragging
+        ? "transform 360ms cubic-bezier(0.16, 1, 0.3, 1)"
+        : "none",
+
+    willChange: isCurrentItem
+      ? "transform"
+      : "auto",
+      backfaceVisibility: "hidden",
+transformStyle: "preserve-3d",
+  }}
+>
+  {itemIsVideo ? (
+    <MobileVideoPlayer
+      src={item.url}
+      setVideoRef={(element) => {
+        videoRefs.current[index] = element;
+      }}
+    />
+  ) : (
+    <img
+      src={item.url}
+      alt={item.name || "Ảnh EverMoment"}
+      draggable
+      onContextMenu={(event) => {
+        event.stopPropagation();
+      }}
+      loading={
+        Math.abs(index - selectedIndex) <= 1
+          ? "eager"
+          : "lazy"
+      }
+      style={{
+        maxWidth: "100%",
+        maxHeight: "100%",
+        objectFit: "contain",
+        userSelect: "auto",
+        WebkitUserDrag: "auto",
+        WebkitTouchCallout: "default",
+
+        transform: isCurrentItem
+          ? `translate3d(${imageX}px, ${imageY}px, 0) scale(${scale})`
+          : "none",
+
+        transition:
+          isCurrentItem && !isDragging
+            ? "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)"
+            : "none",
+
+        transformOrigin: "center center",
+        willChange: "transform",
+      }}
+    />
+  )}
+</div>
               </div>
             );
           })}
@@ -831,7 +908,7 @@ gestureRef.current.ignoreGesture = false;
     selectedItem={currentMedia}
     onClose={closeViewer}
     onDelete={onDelete ? deleteCurrentMedia : null}
-    visible={showControls}
+    visible={showControls && dragY < 18}
   />
 )}
       <div

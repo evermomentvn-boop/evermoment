@@ -191,21 +191,23 @@ code {
 }
 @media (max-width: 768px) {
   .mobile-gallery-toolbar {
-    transition:
-      opacity 220ms ease,
-      transform 220ms ease;
-  }
+  transition:
+    opacity 240ms ease,
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  will-change: opacity, transform;
+}
 
   .mobile-gallery-toolbar.is-hidden {
-    opacity: 0;
-    transform: translateY(-14px);
-    pointer-events: none;
-  }
+  opacity: 0;
+  transform: translate3d(0, -22px, 0) scale(0.97);
+  pointer-events: none;
+}
 
   .mobile-gallery-toolbar.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
 
   .mobile-sheet-overlay {
     position: fixed;
@@ -296,5 +298,180 @@ code {
     to {
       transform: translateY(0);
     }
+  }
+}
+.evermoment-video-player {
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+  background: #000;
+  touch-action: manipulation;
+}
+
+.evermoment-video-element {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+
+  display: block;
+  object-fit: contain;
+
+  background: #000;
+}
+
+.evermoment-video-controls {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+
+  z-index: 20;
+
+  min-height: 48px;
+  padding: 8px 12px;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  box-sizing: border-box;
+  border-radius: 16px;
+
+  background: rgba(24, 24, 27, 0.68);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  color: #fff;
+}
+
+.evermoment-video-play {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  flex: 0 0 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+
+  font-size: 16px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.evermoment-video-play:disabled {
+  opacity: 0.45;
+}
+
+.evermoment-video-time {
+  min-width: 35px;
+
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.evermoment-video-slider {
+  --video-progress: 0%;
+
+  width: 100%;
+  height: 32px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* Thanh chạy trên Chrome, Edge và Safari */
+.evermoment-video-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      to right,
+      #fff 0%,
+      #fff var(--video-progress),
+      rgba(255, 255, 255, 0.32) var(--video-progress),
+      rgba(255, 255, 255, 0.32) 100%
+    );
+}
+
+/* Chấm tròn kéo thời gian */
+.evermoment-video-slider::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+
+  background: #fff;
+  box-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.45),
+    0 0 0 4px rgba(255, 255, 255, 0.08);
+}
+
+/* Firefox */
+.evermoment-video-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.evermoment-video-slider::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.evermoment-video-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+
+  border: 2px solid #fff;
+  border-radius: 50%;
+
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+}
+
+.evermoment-video-slider:disabled {
+  opacity: 0.45;
+}
+
+@media (min-width: 769px) {
+  .evermoment-video-controls {
+    left: 50%;
+    right: auto;
+    width: min(680px, calc(100% - 40px));
+
+    transform: translateX(-50%);
   }
 }

@@ -76,15 +76,60 @@ function MobileGalleryToolbar({
 
     setShowMenu((current) => !current);
   }
+async function handleDownload(event) {
+  stopGalleryGesture(event);
 
-  function handleDownload(event) {
-    stopGalleryGesture(event);
-
-    if (processingAction) return;
-
-    setShowMenu(false);
-    openOriginalFile();
+  if (processingAction || !selectedItem?.url) {
+    return;
   }
+
+  setProcessingAction("download");
+
+  try {
+    const response = await fetch(selectedItem.url);
+
+    if (!response.ok) {
+      throw new Error("Không tải được tệp.");
+    }
+
+    const blob = await response.blob();
+
+    const file = new File(
+      [blob],
+      selectedItem.name || `evermoment-${Date.now()}`,
+      {
+        type:
+          blob.type ||
+          selectedItem.type ||
+          "application/octet-stream",
+      }
+    );
+
+    if (
+      navigator.share &&
+      navigator.canShare?.({ files: [file] })
+    ) {
+      await navigator.share({
+        files: [file],
+        title: selectedItem.name || "EverMoment",
+      });
+
+      setShowMenu(false);
+      return;
+    }
+
+    window.alert(
+      "Thiết bị này chưa hỗ trợ lưu trực tiếp. Hãy mở bằng Safari trên iPhone."
+    );
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.error("Không thể lưu tệp:", error);
+      window.alert("Không thể chuẩn bị tệp để lưu.");
+    }
+  } finally {
+    setProcessingAction(null);
+  }
+}
 
   async function handleShare(event) {
     stopGalleryGesture(event);
@@ -222,7 +267,11 @@ function MobileGalleryToolbar({
               disabled={isProcessing}
             >
               <span>↓</span>
-              <span>Mở để lưu</span>
+              <span>
+             {processingAction === "download"
+             ? "Đang chuẩn bị…"
+             : "Lưu vào Ảnh"}
+             </span>
             </button>
 
             <button
