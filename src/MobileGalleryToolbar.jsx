@@ -1,16 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-function MobileGalleryToolbar({
-  selectedItem,
-  onClose,
-  onDelete,
-  visible = true,
-}) {
+async function getMediaFile(item) {
+  const response = await fetch(item.url);
+  if (!response.ok) throw new Error("Không tải được tệp từ kho ký ức.");
+  const blob = await response.blob();
+  return new File([blob], item.name || `evermoment-${Date.now()}`, {
+    type: blob.type || item.type || "application/octet-stream",
+  });
+}
+
+function downloadBlob(file) {
+  const objectUrl = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+}
+
+function MobileGalleryToolbar({ selectedItem, onClose, onDelete, visible = true }) {
   const [showMenu, setShowMenu] = useState(false);
-  const [processingAction, setProcessingAction] =
-    useState(null);
-
-  const lastButtonTapRef = useRef(0);
+  const [processingAction, setProcessingAction] = useState(null);
 
   useEffect(() => {
     setShowMenu(false);
@@ -21,158 +33,51 @@ function MobileGalleryToolbar({
     event.stopPropagation();
   }
 
-  function canPressButton() {
-    const now = Date.now();
-
-    if (now - lastButtonTapRef.current < 180) {
-      return false;
-    }
-
-    lastButtonTapRef.current = now;
+  async function openSystemShare(file, title) {
+    if (!navigator.share) return false;
+    if (navigator.canShare && !navigator.canShare({ files: [file] })) return false;
+    await navigator.share({ files: [file], title });
     return true;
   }
 
-  function openOriginalFile() {
-    if (!selectedItem?.url) {
-      window.alert("Không tìm thấy tệp.");
-      return;
-    }
-
-    /*
-     * Không tải video lớn vào RAM.
-     * Safari sẽ mở tệp gốc:
-     * - Ảnh: có thể nhấn giữ để lưu.
-     * - Video: có thể dùng nút Chia sẻ/Lưu của Safari.
-     */
-    const newWindow = window.open(
-      selectedItem.url,
-      "_blank"
-    );
-
-    if (newWindow) {
-      newWindow.opener = null;
-    } else {
-      window.location.assign(selectedItem.url);
-    }
-  }
-
-  function handleClose(event) {
+  async function handleSave(event) {
     stopGalleryGesture(event);
-
-    if (!canPressButton() || processingAction) {
-      return;
-    }
-
-    setShowMenu(false);
-    onClose?.();
-  }
-
-  function handleToggleMenu(event) {
-    stopGalleryGesture(event);
-
-    if (!canPressButton() || processingAction) {
-      return;
-    }
-
-    setShowMenu((current) => !current);
-  }
-async function handleDownload(event) {
-  stopGalleryGesture(event);
-
-  if (processingAction || !selectedItem?.url) {
-    return;
-  }
-
-  setProcessingAction("download");
-
-  try {
-    const response = await fetch(selectedItem.url);
-
-    if (!response.ok) {
-      throw new Error("Không tải được tệp.");
-    }
-
-    const blob = await response.blob();
-
-    const file = new File(
-      [blob],
-      selectedItem.name || `evermoment-${Date.now()}`,
-      {
-        type:
-          blob.type ||
-          selectedItem.type ||
-          "application/octet-stream",
+    if (processingAction || !selectedItem?.url) return;
+    setProcessingAction("save");
+    try {
+      const file = await getMediaFile(selectedItem);
+      const shared = await openSystemShare(file, selectedItem.name || "EverMoment");
+      if (!shared) {
+        downloadBlob(file);
+        window.alert("Tệp đã được tải xuống. Trên điện thoại, tệp thường nằm trong mục Tải về/Tệp.");
       }
-    );
-
-    if (
-      navigator.share &&
-      navigator.canShare?.({ files: [file] })
-    ) {
-      await navigator.share({
-        files: [file],
-        title: selectedItem.name || "EverMoment",
-      });
-
       setShowMenu(false);
-      return;
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        console.error(error);
+        window.alert("Không thể chuẩn bị tệp. EverMoment sẽ không chuyển bạn sang đường dẫn Supabase.");
+      }
+    } finally {
+      setProcessingAction(null);
     }
-
-    window.alert(
-      "Thiết bị này chưa hỗ trợ lưu trực tiếp. Hãy mở bằng Safari trên iPhone."
-    );
-  } catch (error) {
-    if (error?.name !== "AbortError") {
-      console.error("Không thể lưu tệp:", error);
-      window.alert("Không thể chuẩn bị tệp để lưu.");
-    }
-  } finally {
-    setProcessingAction(null);
   }
-}
 
   async function handleShare(event) {
     stopGalleryGesture(event);
-
-    if (processingAction || !selectedItem?.url) {
-      return;
-    }
-
+    if (processingAction || !selectedItem?.url) return;
     setProcessingAction("share");
-
     try {
-      /*
-       * Chia sẻ URL thay vì tải toàn bộ video vào RAM.
-       * Cách này nhẹ và ổn định hơn trên Safari.
-       */
-      if (navigator.share) {
-        await navigator.share({
-          title: selectedItem.name || "EverMoment",
-          url: selectedItem.url,
-        });
-
-        setShowMenu(false);
-        return;
+      const file = await getMediaFile(selectedItem);
+      const shared = await openSystemShare(file, selectedItem.name || "EverMoment");
+      if (!shared) {
+        downloadBlob(file);
+        window.alert("Trình duyệt này chưa hỗ trợ bảng chia sẻ tệp. EverMoment đã tải tệp xuống để bạn gửi qua Email hoặc ứng dụng khác.");
       }
-
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(
-          selectedItem.url
-        );
-
-        window.alert("Đã sao chép đường dẫn.");
-        setShowMenu(false);
-        return;
-      }
-
       setShowMenu(false);
-      openOriginalFile();
     } catch (error) {
       if (error?.name !== "AbortError") {
-        console.error("Không thể chia sẻ:", error);
-        window.alert(
-          "Không thể mở bảng chia sẻ. Hãy thử Mở để lưu."
-        );
+        console.error(error);
+        window.alert("Không thể mở bảng chia sẻ tệp.");
       }
     } finally {
       setProcessingAction(null);
@@ -181,18 +86,11 @@ async function handleDownload(event) {
 
   async function handleDelete(event) {
     stopGalleryGesture(event);
-
-    if (processingAction || !onDelete) {
-      return;
-    }
-
+    if (processingAction || !onDelete) return;
     setProcessingAction("delete");
     setShowMenu(false);
-
     try {
       await onDelete();
-    } catch (error) {
-      console.error("Không thể xóa:", error);
     } finally {
       setProcessingAction(null);
     }
@@ -203,118 +101,40 @@ async function handleDownload(event) {
   return (
     <>
       <div
-        className={`mobile-gallery-toolbar ${
-          visible ? "is-visible" : "is-hidden"
-        }`}
+        className={`mobile-gallery-toolbar ${visible ? "is-visible" : "is-hidden"}`}
+        data-viewer-control="true"
         onTouchStart={stopGalleryGesture}
         onTouchMove={stopGalleryGesture}
         onTouchEnd={stopGalleryGesture}
         onPointerDown={stopGalleryGesture}
+        onPointerMove={stopGalleryGesture}
         onPointerUp={stopGalleryGesture}
         onClick={stopGalleryGesture}
       >
-        <button
-          type="button"
-          className="mobile-gallery-close"
-          aria-label="Đóng"
-          disabled={isProcessing}
-          onClick={handleClose}
-        >
+        <button type="button" className="mobile-gallery-close" aria-label="Đóng" disabled={isProcessing} onClick={(event) => { stopGalleryGesture(event); onClose?.(); }}>
           ✕
         </button>
-
-        <button
-          type="button"
-          className="mobile-gallery-more"
-          aria-label="Thêm tùy chọn"
-          aria-expanded={showMenu}
-          disabled={isProcessing}
-          onClick={handleToggleMenu}
-        >
+        <button type="button" className="mobile-gallery-more" aria-label="Thêm tùy chọn" aria-expanded={showMenu} disabled={isProcessing} onClick={(event) => { stopGalleryGesture(event); setShowMenu((value) => !value); }}>
           •••
         </button>
       </div>
 
       {showMenu && (
-        <div
-          className="mobile-sheet-overlay"
-          onTouchStart={stopGalleryGesture}
-          onTouchMove={stopGalleryGesture}
-          onTouchEnd={stopGalleryGesture}
-          onPointerDown={stopGalleryGesture}
-          onPointerUp={stopGalleryGesture}
-          onClick={(event) => {
-            stopGalleryGesture(event);
-
-            if (!isProcessing) {
-              setShowMenu(false);
-            }
-          }}
-        >
-          <div
-            className="mobile-gallery-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Tùy chọn ảnh hoặc video"
-            onClick={stopGalleryGesture}
-          >
+        <div className="mobile-sheet-overlay" data-viewer-control="true" onClick={() => setShowMenu(false)} onTouchMove={stopGalleryGesture}>
+          <div className="mobile-gallery-sheet" onClick={stopGalleryGesture}>
             <div className="mobile-sheet-handle" />
-
-            <button
-              type="button"
-              className="mobile-sheet-action"
-              onClick={handleDownload}
-              disabled={isProcessing}
-            >
-              <span>↓</span>
-              <span>
-             {processingAction === "download"
-             ? "Đang chuẩn bị…"
-             : "Lưu vào Ảnh"}
-             </span>
+            <button type="button" className="mobile-sheet-action" disabled={isProcessing} onClick={handleSave}>
+              <span>⇩</span><span>{processingAction === "save" ? "Đang chuẩn bị…" : "Lưu vào Ảnh / Tệp"}</span>
             </button>
-
-            <button
-              type="button"
-              className="mobile-sheet-action"
-              onClick={handleShare}
-              disabled={isProcessing}
-            >
-              <span>↗</span>
-              <span>
-                {processingAction === "share"
-                  ? "Đang mở chia sẻ…"
-                  : "Chia sẻ"}
-              </span>
+            <button type="button" className="mobile-sheet-action" disabled={isProcessing} onClick={handleShare}>
+              <span>↗</span><span>{processingAction === "share" ? "Đang chuẩn bị…" : "Chia sẻ qua ứng dụng / Email"}</span>
             </button>
-
             {onDelete && (
-              <button
-                type="button"
-                className="mobile-sheet-action mobile-sheet-delete"
-                onClick={handleDelete}
-                disabled={isProcessing}
-              >
-                <span>⌫</span>
-                <span>
-                  {processingAction === "delete"
-                    ? "Đang xóa…"
-                    : "Xóa"}
-                </span>
+              <button type="button" className="mobile-sheet-action mobile-sheet-delete" disabled={isProcessing} onClick={handleDelete}>
+                <span>⌫</span><span>Xóa khỏi kho ký ức</span>
               </button>
             )}
-
-            <button
-              type="button"
-              className="mobile-sheet-cancel"
-              disabled={isProcessing}
-              onClick={(event) => {
-                stopGalleryGesture(event);
-                setShowMenu(false);
-              }}
-            >
-              Hủy
-            </button>
+            <button type="button" className="mobile-sheet-cancel" disabled={isProcessing} onClick={() => setShowMenu(false)}>Hủy</button>
           </div>
         </div>
       )}

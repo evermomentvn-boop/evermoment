@@ -493,3 +493,167 @@ code {
   transform: translate3d(0, 18px, 0);
   pointer-events: none;
 }
+/* EverMoment Viewer V2 — chỉ 3 slide, chuyển động GPU, ưu tiên mobile */
+.ev-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  color: #fff;
+  transition: background-color 180ms linear;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ev-viewer-stage,
+.ev-viewer-dismiss-layer {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.ev-viewer-dismiss-layer {
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.ev-viewer-track {
+  display: flex;
+  width: 300vw;
+  height: 100%;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.ev-viewer-slide {
+  width: 100vw;
+  min-width: 100vw;
+  height: 100%;
+  flex: 0 0 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    0
+    max(8px, env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+.ev-viewer-media-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ev-viewer-image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transform-origin: center center;
+  will-change: transform;
+  backface-visibility: hidden;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+.evermoment-video-player {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.evermoment-video-element {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ev-viewer *,
+  .mobile-gallery-toolbar {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* V5 gesture isolation: timeline owns the gesture, viewer never receives it. */
+.evermoment-video-slider,
+.evermoment-video-controls,
+.evermoment-video-play {
+  overscroll-behavior: contain;
+}
+
+.evermoment-video-slider {
+  touch-action: none !important;
+}
+
+.ev-viewer-track,
+.ev-viewer-dismiss-layer {
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* V5.2: keep taps away from the native <video> surface. The transparent layer
+   receives taps, while touchmove still bubbles to the viewer for swipe gestures. */
+.evermoment-video-element {
+  pointer-events: none;
+}
+
+.evermoment-video-tap-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.evermoment-video-controls {
+  z-index: 20;
+}
+
+/* V5.3 desktop: dedicated close button stays available even when the rest of
+   the desktop controls are hidden. */
+.gallery-desktop-close {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 10040;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(28, 28, 30, 0.72);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+@media (max-width: 768px) {
+  .gallery-desktop-close {
+    display: none !important;
+  }
+}
