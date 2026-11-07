@@ -1,0 +1,355 @@
+.journey-page {
+  min-height: 100vh;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 20px 100px;
+  background: #fffdfb;
+  color: #172033;
+  box-sizing: border-box;
+}
+
+.journey-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.journey-back {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: #f3f4f7;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.journey-header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.journey-header p {
+  margin: 5px 0 0;
+  color: #7b8190;
+  font-size: 14px;
+}
+
+.journey-intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  background: #fff3e3;
+  margin-bottom: 28px;
+}
+
+.journey-intro > span {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: white;
+  font-size: 25px;
+}
+
+.journey-intro strong {
+  font-size: 17px;
+}
+
+.journey-intro p {
+  margin: 5px 0 0;
+  color: #737887;
+  font-size: 14px;
+}
+
+.journey-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.journey-section-title h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.journey-section-title span {
+  color: #8b909c;
+  font-size: 14px;
+}
+
+.journey-empty-preview {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  border: 1px dashed #d9dce3;
+  border-radius: 18px;
+  background: white;
+  color: #969ba6;
+}
+.journey-add-moment {
+  border: none;
+  background: #fff1e6;
+  color: #e56b4a;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.journey-add-moment:hover {
+  background: #ffe6d5;
+}
+/* Bảng chọn khoảnh khắc */
+.journey-picker {
+  margin-top: 18px;
+  padding: 14px;
+  background: #fff;
+  border-radius: 18px;
+}
+
+.journey-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.journey-picker-header h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.journey-picker-header button {
+  border: none;
+  background: transparent;
+  color: #e56b4a;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Lưới chọn ảnh/video */
+.journey-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.journey-picker-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #f2f2f2;
+  cursor: pointer;
+}
+
+.journey-picker-item img,
+.journey-picker-item video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.journey-picker-item.selected {
+  outline: 3px solid #ff6b4a;
+  outline-offset: -3px;
+}
+
+.journey-selected-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #ff6b4a;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+
+  z-index: 10;
+}.journey-moment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-top: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.journey-moment-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #f3f3f3;
+}
+
+.journey-moment-item img,
+.journey-moment-item video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+/* Mốc thời gian trong hành trình */
+
+.journey-timeline-entry {
+  margin-top: 18px;
+}
+
+.journey-timeline-date {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.journey-timeline-date > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+
+  border-radius: 50%;
+  background: #fff1e6;
+  color: #e56b4a;
+
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.journey-timeline-date > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.journey-timeline-date strong {
+  font-size: 15px;
+  color: #172033;
+}
+
+.journey-timeline-date small {
+  font-size: 13px;
+  color: #8b909c;
+}
+.journey-moment-item {
+    position: relative;
+}
+.journey-selected-mark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #e65b4a;
+    color: white;
+    border: 2px solid white;
+
+    font-size: 15px;
+    font-weight: 700;
+    z-index: 5;
+
+    pointer-events: none;
+}
+.journey-selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+
+    margin: 10px 0 18px;
+    padding: 10px 14px;
+
+    background: #fff7f3;
+    border-radius: 14px;
+}
+
+.journey-selection-bar > span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #172033;
+}
+
+.journey-selection-bar > button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.journey-selection-bar > button:first-child {
+    color: #6b7280;
+}
+
+.journey-selection-bar .journey-remove-selected {
+    background: #e65b4a;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 10px;
+}
+
+.journey-selection-bar .journey-remove-selected:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.journey-video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+
+  font-size: 20px;
+  padding-left: 3px;
+
+  pointer-events: none;
+  z-index: 2;
+}
+
+.journey-intro-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
