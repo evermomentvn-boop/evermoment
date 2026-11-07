@@ -9,6 +9,9 @@ export default function Journey({
     setJourneyMoments,
     onOpenFile,
     onBack,
+    readOnly = false,
+    momentsLoading = false,
+    momentsError = "",
 }) {
     const [showPicker, setShowPicker] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
@@ -22,7 +25,7 @@ const [selectedMomentFiles, setSelectedMomentFiles] = useState([]);
                     type="button"
                     className="journey-back"
                     onClick={onBack}
-                    aria-label="Trở về trang chủ"
+                    aria-label="Trở về trang trước"
                 >
                     ←
                 </button>
@@ -59,7 +62,7 @@ const [selectedMomentFiles, setSelectedMomentFiles] = useState([]);
                 <div className="journey-section-title">
     <h2>Khoảnh khắc</h2>
 
-    <div className="journey-section-actions">
+    {!readOnly && <div className="journey-section-actions">
         <button
             type="button"
             className="journey-add-moment"
@@ -76,9 +79,11 @@ const [selectedMomentFiles, setSelectedMomentFiles] = useState([]);
         >
             •••
         </button>
-    </div>
+    </div>}
 </div>
-{isSelectingMoments && (
+{momentsLoading && <p>Đang tải khoảnh khắc...</p>}
+{momentsError && <p role="alert">Không thể tải khoảnh khắc: {momentsError}</p>}
+{!readOnly && isSelectingMoments && (
     <div className="journey-selection-bar">
         <button
             type="button"
@@ -173,7 +178,7 @@ const [selectedMomentFiles, setSelectedMomentFiles] = useState([]);
 </button>
     </div>
 )}
-{showMomentMenu && (
+{!readOnly && showMomentMenu && (
     <div className="journey-moment-menu">
         <button
             type="button"
@@ -262,7 +267,7 @@ const [selectedMomentFiles, setSelectedMomentFiles] = useState([]);
                         </div>
                     </div>
                 ))}
-                {showPicker && (
+                {!readOnly && showPicker && (
                     <div className="journey-picker">
                         <div className="journey-picker-header">
                             <h3>Chọn khoảnh khắc</h3>
