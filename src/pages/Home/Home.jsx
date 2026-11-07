@@ -4,6 +4,7 @@ import { supabase } from "../../supabase";
 import HouseholdSpace from "./HouseholdSpace/HouseholdSpace";
 export default function Home({
   onOpenSharedJourney,
+  initialOpenedHousehold = null,
     customerId,
     authUser,
   customerCode,
@@ -53,7 +54,7 @@ const [household, setHousehold] = useState(null);
 const [isRenamingHousehold, setIsRenamingHousehold] = useState(false);
 const [newHouseholdName, setNewHouseholdName] = useState("");
 const [joinedHouseholds, setJoinedHouseholds] = useState([]);
-const [openedHousehold, setOpenedHousehold] = useState(null);
+const [openedHousehold, setOpenedHousehold] = useState(initialOpenedHousehold);
 const [showJoinedHouseholds, setShowJoinedHouseholds] = useState(false);
 const [householdMembers, setHouseholdMembers] = useState([]);
 const [selectedMember, setSelectedMember] = useState(null);
@@ -248,7 +249,7 @@ if (openedHousehold) {
     <HouseholdSpace
       household={openedHousehold}
       onBack={() => setOpenedHousehold(null)}
-      onOpenJourney={onOpenSharedJourney}
+      onOpenJourney={(journey) => onOpenSharedJourney?.(journey, openedHousehold)}
       onSelectJourney={onSelectJourney}
     />
   );
