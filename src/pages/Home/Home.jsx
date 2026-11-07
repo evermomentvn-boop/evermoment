@@ -5,7 +5,6 @@ import HouseholdSpace from "./HouseholdSpace/HouseholdSpace";
 export default function Home({
   onOpenSharedJourney,
   initialOpenedHousehold = null,
-  initialOpenedHousehold = null,
     customerId,
     authUser,
   customerCode,
