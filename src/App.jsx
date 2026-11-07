@@ -15,6 +15,38 @@ function App() {
   const [files, setFiles] = useState([]);
  const [journeyMomentsById, setJourneyMomentsById] = useState({});
   const [selectedJourney, setSelectedJourney] = useState(null);
+  const [sharedJourneyContext, setSharedJourneyContext] = useState(null);
+  const [sharedJourneyMoments, setSharedJourneyMoments] = useState([]);
+  const [sharedJourneyLoading, setSharedJourneyLoading] = useState(false);
+  const [sharedJourneyError, setSharedJourneyError] = useState("");
+  const [returnHousehold, setReturnHousehold] = useState(null);
+
+  async function openSharedJourney(journey, household) {
+    if (!journey?.journey_id || !household?.id) return;
+    setSharedJourneyContext({ householdId: household.id });
+    setReturnHousehold(household);
+    setSharedJourneyMoments([]);
+    setSharedJourneyError("");
+    setSharedJourneyLoading(true);
+    setSelectedJourney({
+      ...journey,
+      id: journey.journey_id,
+      subtitle: journey.description || "Hành trình của Nhà",
+    });
+    setScreen("journey");
+    const { data, error } = await supabase
+      .from("journey_moments")
+      .select("moment_data")
+      .eq("journey_id", journey.journey_id);
+    if (error) {
+      console.error("Không tải được khoảnh khắc Nhà:", error);
+      setSharedJourneyError(error.message);
+    } else {
+      setSharedJourneyMoments((data || []).map(row => row.moment_data).filter(Boolean));
+    }
+    setSharedJourneyLoading(false);
+  }
+
   const [journeys, setJourneys] = useState({});
 const createJourney = async (title, description) => {
   const customerId = localStorage.getItem("customerId");
@@ -953,10 +985,8 @@ customerCode={customerCode}
   onOpenMemory={() => setScreen("memory")}
   onOpenJourney={() => setScreen("journey")}
   onSelectJourney={(id) => setSelectedJourney(journeys[id])}
-  onOpenSharedJourney={(journey) => {
-  setSelectedJourney(journey);
-  setScreen("journey");
-}}
+  initialOpenedHousehold={returnHousehold}
+  onOpenSharedJourney={openSharedJourney}
   onCreateJourney={createJourney}
   onDeleteJourney={deleteJourney}
   onUpdateJourney={updateJourney}
@@ -977,7 +1007,10 @@ customerCode={customerCode}
 {screen === "journey" && (
   <Journey
   selectedJourney={selectedJourney}
-    allFiles={mediaFiles}
+    allFiles={sharedJourneyContext ? [] : mediaFiles}
+    readOnly={Boolean(sharedJourneyContext)}
+    momentsLoading={sharedJourneyContext ? sharedJourneyLoading : false}
+    momentsError={sharedJourneyContext ? sharedJourneyError : ""}
     onOpenFile={(file, momentFiles) => {
   const index = momentFiles.findIndex(
     (item) => item.path === file.path
@@ -989,7 +1022,7 @@ customerCode={customerCode}
   setJourneyViewerIndex(index);
 }}
     journeyMoments={
-  journeyMomentsById[selectedJourney?.id] || []
+  sharedJourneyContext ? sharedJourneyMoments : (journeyMomentsById[selectedJourney?.id] || [])
 }
 setJourneyMoments={(updater) => {
   if (!selectedJourney?.id) return;
@@ -1009,7 +1042,10 @@ setJourneyMoments={(updater) => {
     };
   });
 }}
-    onBack={() => setScreen("dashboard")}
+    onBack={() => {
+      setScreen("dashboard");
+      setSharedJourneyContext(null);
+    }}
   />
 )}
       {screen === "memory" && (
