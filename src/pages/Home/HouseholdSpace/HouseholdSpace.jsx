@@ -74,7 +74,8 @@ useEffect(() => {
           .select("id, journey_id, customer_id, title, description, image_url, created_at")
           .in("id", ids)
       : { data: [], error: null };
-    const error = legacy.error || links.error || shared.error;
+    const linksNotReady = ["42P01", "PGRST205"].includes(links.error?.code);
+    const error = legacy.error || (linksNotReady ? null : links.error) || shared.error;
     const byId = new Map();
     for (const row of [...(legacy.data || []), ...(shared.data || [])]) {
       byId.set(row.id, row);
@@ -85,9 +86,9 @@ useEffect(() => {
 
     if (cancelled) return;
 
-    console.log("🏠 NHÀ ĐANG MỞ:", household.id, household.name);
-console.log("🌿 HÀNH TRÌNH TRẢ VỀ:", data);
-console.log("❌ LỖI SUPABASE:", error);
+
+
+
 
 if (error) {
   console.error("Lỗi tải hành trình Nhà:", error);
