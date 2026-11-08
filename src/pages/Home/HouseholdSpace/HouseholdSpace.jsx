@@ -10,6 +10,45 @@ export default function HouseholdSpace({
     const [householdJourneys, setHouseholdJourneys] = useState([]);
 const [journeysLoading, setJourneysLoading] = useState(true);
 const [journeysError, setJourneysError] = useState("");
+const [shareOpen, setShareOpen] = useState(false);
+const [shareCandidates, setShareCandidates] = useState([]);
+const [shareError, setShareError] = useState("");
+const [shareBusy, setShareBusy] = useState(false);
+const [reloadKey, setReloadKey] = useState(0);
+
+async function showShareDialog() {
+  setShareError("");
+  setShareCandidates([]);
+  setShareOpen(true);
+  const { data: userResult, error: authError } = await supabase.auth.getUser();
+  if (authError || !userResult?.user) {
+    setShareError("Vui lòng đăng nhập lại.");
+    return;
+  }
+  const { data: owners, error: ownersError } = await supabase
+    .from("customers").select("id").eq("auth_user_id", userResult.user.id);
+  if (ownersError) { setShareError(ownersError.message); return; }
+  if (!owners?.length) return;
+  const { data, error } = await supabase.from("journeys")
+    .select("id, journey_id, title, customer_id")
+    .in("customer_id", owners.map((owner) => owner.id))
+    .order("created_at", { ascending: false });
+  if (error) setShareError(error.message);
+  else setShareCandidates(data || []);
+}
+
+async function shareJourney(journey) {
+  if (!household?.id || shareBusy) return;
+  setShareBusy(true);
+  setShareError("");
+  const { error } = await supabase.rpc("share_journey_to_household", {
+    p_journey_row_id: journey.id,
+    p_household_id: household.id,
+  });
+  if (error) setShareError(error.message);
+  else { setShareOpen(false); setReloadKey((n) => n + 1); }
+  setShareBusy(false);
+}
 
 useEffect(() => {
   let cancelled = false;
@@ -24,11 +63,25 @@ useEffect(() => {
     setJourneysLoading(true);
     setJourneysError("");
 
-    const { data, error } = await supabase
-      .from("journeys")
-      .select("id, journey_id, title, description, image_url, created_at")
-      .eq("household_id", household.id)
-      .order("created_at", { ascending: false });
+    const legacy = await supabase.from("journeys")
+      .select("id, journey_id, customer_id, title, description, image_url, created_at")
+      .eq("household_id", household.id);
+    const links = await supabase.from("household_journeys")
+      .select("journey_row_id").eq("household_id", household.id);
+    const ids = (links.data || []).map((row) => row.journey_row_id);
+    const shared = ids.length
+      ? await supabase.from("journeys")
+          .select("id, journey_id, customer_id, title, description, image_url, created_at")
+          .in("id", ids)
+      : { data: [], error: null };
+    const error = legacy.error || links.error || shared.error;
+    const byId = new Map();
+    for (const row of [...(legacy.data || []), ...(shared.data || [])]) {
+      byId.set(row.id, row);
+    }
+    const data = [...byId.values()].sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
 
     if (cancelled) return;
 
@@ -52,7 +105,7 @@ if (error) {
   return () => {
     cancelled = true;
   };
-}, [household?.id]);
+}, [household?.id, reloadKey]);
   const [members, setMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState("");
@@ -235,9 +288,25 @@ if (error) {
           <p>Khoảnh khắc từ các hành trình được chia sẻ vào Nhà sẽ xuất hiện ở đây.</p>
         </div>
 
-        <button className="hs-share-button" type="button" disabled>
+        <button className="hs-share-button" type="button" onClick={showShareDialog}>
           ＋ Chia sẻ hành trình
         </button>
+        {shareOpen && (
+          <div className="hs-empty-card" role="dialog" aria-label="Chia sẻ hành trình">
+            <h3>Chọn hành trình đưa vào Nhà</h3>
+            <p>Toàn bộ thành viên Nhà sẽ xem được hành trình được chia sẻ.</p>
+            {shareError && <p role="alert" style={{ color: "#c0392b" }}>{shareError}</p>}
+            {!shareError && shareCandidates.length === 0 && <p>Chưa có hành trình cá nhân.</p>}
+            {shareCandidates.map((journey) => (
+              <button key={journey.id} type="button" disabled={shareBusy}
+                onClick={() => shareJourney(journey)}
+                style={{ display: "block", width: "100%", padding: "10px", margin: "8px 0" }}>
+                🌿 {journey.title || "Hành trình chưa đặt tên"}
+              </button>
+            ))}
+            <button type="button" onClick={() => setShareOpen(false)}>Đóng</button>
+          </div>
+        )
       </section>
 
       {/* HÀNH TRÌNH */}
