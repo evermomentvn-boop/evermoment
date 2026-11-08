@@ -308,8 +308,8 @@ useEffect(() => {
 }
   supabase.auth.getSession().then(({ data: { session } }) => {
     const user = session?.user ?? null;
-    console.log("GET SESSION:", session);
-console.log("GET SESSION USER:", user);
+
+
     setAuthUser(user);
   });
 
@@ -973,7 +973,7 @@ async function loadFiles(folder) {
     onComplete={() => setScreen("dashboard")}
   />
 )}
-{console.log("APP AUTH USER:", authUser)}
+
       {screen === "dashboard" && (
   <Home
   customerId={localStorage.getItem("customerId")}
