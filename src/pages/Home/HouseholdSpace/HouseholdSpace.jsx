@@ -14,27 +14,31 @@ const [shareOpen, setShareOpen] = useState(false);
 const [shareCandidates, setShareCandidates] = useState([]);
 const [shareError, setShareError] = useState("");
 const [shareBusy, setShareBusy] = useState(false);
+const [shareLoading, setShareLoading] = useState(false);
 const [reloadKey, setReloadKey] = useState(0);
 
 async function showShareDialog() {
   setShareError("");
   setShareCandidates([]);
+  setShareLoading(true);
   setShareOpen(true);
   const { data: userResult, error: authError } = await supabase.auth.getUser();
   if (authError || !userResult?.user) {
     setShareError("Vui lòng đăng nhập lại.");
+    setShareLoading(false);
     return;
   }
   const { data: owners, error: ownersError } = await supabase
     .from("customers").select("id").eq("auth_user_id", userResult.user.id);
-  if (ownersError) { setShareError(ownersError.message); return; }
-  if (!owners?.length) return;
+  if (ownersError) { setShareError(ownersError.message); setShareLoading(false); return; }
+  if (!owners?.length) { setShareLoading(false); return; }
   const { data, error } = await supabase.from("journeys")
     .select("id, journey_id, title, customer_id")
     .in("customer_id", owners.map((owner) => owner.id))
     .order("created_at", { ascending: false });
   if (error) setShareError(error.message);
   else setShareCandidates(data || []);
+  setShareLoading(false);
 }
 
 async function shareJourney(journey) {
@@ -297,7 +301,8 @@ if (error) {
             <h3>Chọn hành trình đưa vào Nhà</h3>
             <p>Toàn bộ thành viên Nhà sẽ xem được hành trình được chia sẻ.</p>
             {shareError && <p role="alert" style={{ color: "#c0392b" }}>{shareError}</p>}
-            {!shareError && shareCandidates.length === 0 && <p>Chưa có hành trình cá nhân.</p>}
+            {shareLoading && <p>Đang tải hành trình...</p>}
+            {!shareLoading && !shareError && shareCandidates.length === 0 && <p>Chưa có hành trình cá nhân.</p>}
             {shareCandidates.map((journey) => (
               <button key={journey.id} type="button" disabled={shareBusy}
                 onClick={() => shareJourney(journey)}
@@ -307,7 +312,7 @@ if (error) {
             ))}
             <button type="button" onClick={() => setShareOpen(false)}>Đóng</button>
           </div>
-        )
+        )}
       </section>
 
       {/* HÀNH TRÌNH */}
