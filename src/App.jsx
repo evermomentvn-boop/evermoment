@@ -37,7 +37,8 @@ function App() {
     const { data, error } = await supabase
       .from("journey_moments")
       .select("moment_data")
-      .eq("journey_id", journey.journey_id);
+      .eq("journey_id", journey.journey_id)
+      .eq("customer_id", journey.customer_id);
     if (error) {
       console.error("Không tải được khoảnh khắc Nhà:", error);
       setSharedJourneyError(error.message);
