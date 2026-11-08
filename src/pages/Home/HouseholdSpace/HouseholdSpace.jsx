@@ -232,11 +232,11 @@ if (error) {
 
         <div className="hs-empty-card">
           <span>📸</span>
-          <p>Những khoảnh khắc được chia sẻ vào Nhà sẽ xuất hiện ở đây.</p>
+          <p>Khoảnh khắc từ các hành trình được chia sẻ vào Nhà sẽ xuất hiện ở đây.</p>
         </div>
 
         <button className="hs-share-button" type="button" disabled>
-          ＋ Chia sẻ khoảnh khắc
+          ＋ Chia sẻ hành trình
         </button>
       </section>
 
