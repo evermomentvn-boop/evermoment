@@ -49,8 +49,11 @@ async function shareJourney(journey) {
     p_journey_row_id: journey.id,
     p_household_id: household.id,
   });
-  if (error) setShareError(error.message);
-  else { setShareOpen(false); setReloadKey((n) => n + 1); }
+  if (error) {
+    setShareError(["42883", "PGRST202"].includes(error.code)
+      ? "Chức năng chia sẻ chưa được kích hoạt trên Supabase. Dữ liệu cũ vẫn được giữ nguyên."
+      : error.message);
+  } else { setShareOpen(false); setReloadKey((n) => n + 1); }
   setShareBusy(false);
 }
 
