@@ -134,7 +134,7 @@ useEffect(() => {
       setSelectedMember(null);
 
       const { data, error } = await supabase
-        .from("household_members")
+        .from("household_member")
         .select(`
           user_id,
           role,
