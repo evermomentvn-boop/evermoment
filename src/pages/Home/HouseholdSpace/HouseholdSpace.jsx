@@ -15,6 +15,7 @@ const [shareCandidates, setShareCandidates] = useState([]);
 const [shareError, setShareError] = useState("");
 const [shareBusy, setShareBusy] = useState(false);
 const [shareLoading, setShareLoading] = useState(false);
+const [shareLoading, setShareLoading] = useState(false);
 const [reloadKey, setReloadKey] = useState(0);
 
 async function showShareDialog() {
@@ -306,7 +307,7 @@ if (error) {
             {shareError && <p role="alert" style={{ color: "#c0392b" }}>{shareError}</p>}
             {shareLoading && <p>Đang tải hành trình...</p>}
             {!shareLoading && !shareError && shareCandidates.length === 0 && <p>Chưa có hành trình cá nhân.</p>}
-            {shareCandidates.map((journey) => (
+            {!shareLoading && shareCandidates.map((journey) => (
               <button key={journey.id} type="button" disabled={shareBusy}
                 onClick={() => shareJourney(journey)}
                 style={{ display: "block", width: "100%", padding: "10px", margin: "8px 0" }}>
