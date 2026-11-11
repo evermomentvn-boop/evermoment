@@ -81,7 +81,7 @@ useEffect(() => {
           .select("id, journey_id, customer_id, title, description, image_url, created_at")
           .in("id", ids)
       : { data: [], error: null };
-    const linksNotReady = ["42P01", "PGRST205"].includes(links.error?.code);
+    const linksNotReady = ["42P01", "PGRST205", "PGRST116"].includes(links.error?.code);
     const error = legacy.error || (linksNotReady ? null : links.error) || shared.error;
     const byId = new Map();
     for (const row of [...(legacy.data || []), ...(shared.data || [])]) {
