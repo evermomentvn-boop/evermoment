@@ -140,7 +140,7 @@ useEffect(() => {
     if (!user) return;
 setCurrentUser(user);
     const { data: membership, error: membershipError } = await supabase
-      .from("household_member")
+      .from("household_members")
 .select("household_id, role")
 .eq("user_id", user.id)
 .eq("role", "owner")
@@ -168,7 +168,7 @@ setCurrentUser(user);
     setHousehold(house);
     // Lấy danh sách tất cả Nhà mà tài khoản đã tham gia
 const { data: joinedMemberships, error: joinedError } = await supabase
-  .from("household_member")
+  .from("household_members")
   .select(`
     household_id,
     role,
@@ -188,7 +188,7 @@ if (joinedError) {
   console.log("NHÀ ĐÃ THAM GIA:", joinedMemberships);
 }
     const { data: members, error: membersError } = await supabase
-  .from("household_member")
+  .from("household_members")
   .select(`
     user_id,
     role,
