@@ -17,7 +17,7 @@ CREATE INDEX IF NOT EXISTS household_journeys_journey_idx
 ALTER TABLE public.household_journeys ENABLE ROW LEVEL SECURITY;
 
 -- Read links only for the owner of the destination house or its members.
--- SECURITY DEFINER helper avoids recursive household_members RLS evaluation.
+-- SECURITY DEFINER helper avoids recursive household_member RLS evaluation.
 CREATE OR REPLACE FUNCTION public.can_view_household_journey(p_household_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = ''
@@ -25,7 +25,7 @@ AS $$
   SELECT auth.uid() IS NOT NULL AND (
     EXISTS (SELECT 1 FROM public.households h
             WHERE h.id = p_household_id AND h.created_by = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.household_members hm
+    OR EXISTS (SELECT 1 FROM public.household_member hm
                WHERE hm.household_id = p_household_id AND hm.user_id = auth.uid())
   );
 $$;
