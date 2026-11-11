@@ -81,7 +81,9 @@ useEffect(() => {
           .select("id, journey_id, customer_id, title, description, image_url, created_at")
           .in("id", ids)
       : { data: [], error: null };
-    const linksNotReady = ["42P01", "PGRST205", "PGRST116"].includes(links.error?.code);
+    // Preserve existing household journeys if the optional sharing feature is unavailable.
+    // A failed linked-journey query must not hide successfully loaded legacy journeys.
+    const linksNotReady = ["42P01", "PGRST205"].includes(links.error?.code);
     const error = legacy.error || (linksNotReady ? null : links.error) || shared.error;
     const byId = new Map();
     for (const row of [...(legacy.data || []), ...(shared.data || [])]) {
@@ -93,17 +95,14 @@ useEffect(() => {
 
     if (cancelled) return;
 
-
-
-
-
-if (error) {
-  console.error("Lỗi tải hành trình Nhà:", error);
-  setJourneysError(error.message);
-  setHouseholdJourneys([]);
-} else {
-  setHouseholdJourneys(data || []);
-}
+    if (error) {
+      console.error("Lỗi tải hành trình Nhà:", error);
+      setJourneysError(error.message);
+      // Keep rows that were loaded successfully; never silently discard them.
+      setHouseholdJourneys(data);
+    } else {
+      setHouseholdJourneys(data);
+    }
 
     setJourneysLoading(false);
   }
@@ -325,12 +324,11 @@ if (error) {
     <span>{householdJourneys.length} hành trình</span>
   </div>
 
+  {journeysError && !journeysLoading && (
+    <p role="alert" style={{ color: "#c0392b" }}>Không tải được đầy đủ hành trình: {journeysError}</p>
+  )}
   {journeysLoading ? (
     <p>Đang tải hành trình...</p>
-  ) : journeysError ? (
-    <p style={{ color: "#c0392b" }}>
-      Không tải được hành trình: {journeysError}
-    </p>
   ) : householdJourneys.length === 0 ? (
     <div className="hs-empty-card">
       <span>🌿</span>
