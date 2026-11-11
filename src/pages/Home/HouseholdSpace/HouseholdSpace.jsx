@@ -15,7 +15,6 @@ const [shareCandidates, setShareCandidates] = useState([]);
 const [shareError, setShareError] = useState("");
 const [shareBusy, setShareBusy] = useState(false);
 const [shareLoading, setShareLoading] = useState(false);
-const [shareLoading, setShareLoading] = useState(false);
 const [reloadKey, setReloadKey] = useState(0);
 
 async function showShareDialog() {
