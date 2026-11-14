@@ -401,9 +401,7 @@ useEffect(() => {
       {householdJourneys.map((journey) => (
         <div
           key={journey.id}
-          onClick={() => onOpenJourney?.(journey)}
           style={{
-            cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "12px",
@@ -412,35 +410,65 @@ useEffect(() => {
             background: "#f6f8fb",
           }}
         >
-          {journey.image_url ? (
-            <img
-              src={journey.image_url}
-              alt={journey.title || "Ảnh hành trình"}
-              style={{
-                width: "68px",
-                height: "68px",
-                objectFit: "cover",
-                borderRadius: "10px",
-              }}
-            />
-          ) : (
-            <span style={{ fontSize: "30px" }}>🌿</span>
-          )}
-
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <strong>{journey.title || "Hành trình chưa đặt tên"}</strong>
-            <p style={{ fontSize: "12px", color: "#777" }}>
-              {journey.description || "Kỷ niệm của gia đình"}
-            </p>
-          </div>
-          {linkedJourneyIds.includes(journey.id) && !legacyJourneyIds.includes(journey.id) && ownedCustomerIds.includes(journey.customer_id) && (
-            <button type="button" disabled={unshareBusyId !== null}
-              onClick={(event) => { event.stopPropagation(); unshareJourney(journey); }}
-              aria-label={"Ngừng chia sẻ " + (journey.title || "hành trình")}
-              style={{ padding: "8px", border: "1px solid #ddd", borderRadius: "8px", background: "#fff", cursor: "pointer" }}>
-              {unshareBusyId === journey.id ? "Đang xử lý..." : "Ngừng chia sẻ"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => onOpenJourney?.(journey)}
+            aria-label={"Mở hành trình " + (journey.title || "chưa đặt tên")}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              textAlign: "left",
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              cursor: "pointer",
+              color: "inherit",
+              font: "inherit",
+            }}
+          >
+            {journey.image_url ? (
+              <img
+                src={journey.image_url}
+                alt={journey.title || "Ảnh hành trình"}
+                style={{
+                  width: "68px",
+                  height: "68px",
+                  objectFit: "cover",
+                  borderRadius: "10px",
+                }}
+              />
+            ) : (
+              <span style={{ fontSize: "30px" }}>🌿</span>
+            )}
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <strong>{journey.title || "Hành trình chưa đặt tên"}</strong>
+              <span style={{ display: "block", fontSize: "12px", color: "#777" }}>
+                {journey.description || "Kỷ niệm của gia đình"}
+              </span>
+            </span>
+          </button>
+          {linkedJourneyIds.includes(journey.id) &&
+            !legacyJourneyIds.includes(journey.id) &&
+            ownedCustomerIds.includes(journey.customer_id) && (
+              <button
+                type="button"
+                disabled={unshareBusyId !== null}
+                onClick={() => unshareJourney(journey)}
+                aria-label={"Ngừng chia sẻ " + (journey.title || "hành trình")}
+                style={{
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "8px",
+                  background: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                {unshareBusyId === journey.id ? "Đang xử lý..." : "Ngừng chia sẻ"}
+              </button>
+            )}
         </div>
       ))}
     </div>
