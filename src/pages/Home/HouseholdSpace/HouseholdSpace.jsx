@@ -12,6 +12,7 @@ const [journeysLoading, setJourneysLoading] = useState(true);
 const [journeysError, setJourneysError] = useState("");
 const [shareOpen, setShareOpen] = useState(false);
 const [shareCandidates, setShareCandidates] = useState([]);
+const [selectedShareJourneyId, setSelectedShareJourneyId] = useState(null);
 const [shareError, setShareError] = useState("");
 const [shareBusy, setShareBusy] = useState(false);
 const [shareLoading, setShareLoading] = useState(false);
@@ -20,6 +21,7 @@ const [reloadKey, setReloadKey] = useState(0);
 async function showShareDialog() {
   setShareError("");
   setShareCandidates([]);
+  setSelectedShareJourneyId(null);
   setShareLoading(true);
   setShareOpen(true);
   const { data: userResult, error: authError } = await supabase.auth.getUser();
@@ -305,14 +307,34 @@ useEffect(() => {
             {shareError && <p role="alert" style={{ color: "#c0392b" }}>{shareError}</p>}
             {shareLoading && <p>Đang tải hành trình...</p>}
             {!shareLoading && !shareError && shareCandidates.length === 0 && <p>Chưa có hành trình cá nhân.</p>}
-            {!shareLoading && shareCandidates.map((journey) => (
-              <button key={journey.id} type="button" disabled={shareBusy}
-                onClick={() => shareJourney(journey)}
-                style={{ display: "block", width: "100%", padding: "10px", margin: "8px 0" }}>
-                🌿 {journey.title || "Hành trình chưa đặt tên"}
-              </button>
-            ))}
-            <button type="button" onClick={() => setShareOpen(false)}>Đóng</button>
+            {!shareLoading && shareCandidates.map((journey) => {
+              const alreadyInHouse = householdJourneys.some((item) => item.id === journey.id);
+              const selected = selectedShareJourneyId === journey.id;
+              return (
+                <button key={journey.id} type="button" disabled={shareBusy || alreadyInHouse}
+                  aria-pressed={selected}
+                  onClick={() => setSelectedShareJourneyId(journey.id)}
+                  style={{
+                    display: "block", width: "100%", padding: "10px", margin: "8px 0",
+                    border: selected ? "2px solid #ff4e70" : "1px solid #bbb",
+                    borderRadius: "8px",
+                    background: selected ? "#fff0f4" : "#fff",
+                    opacity: alreadyInHouse ? 0.65 : 1,
+                  }}>
+                  {selected ? "✓ " : "🌿 "}{journey.title || "Hành trình chưa đặt tên"}
+                  {alreadyInHouse ? " · Đã có trong Nhà" : ""}
+                </button>
+              );
+            })}
+            <button type="button" disabled={shareBusy || shareLoading || !selectedShareJourneyId}
+              onClick={() => {
+                const journey = shareCandidates.find((item) => item.id === selectedShareJourneyId);
+                if (journey) shareJourney(journey);
+              }}
+              style={{ padding: "10px 14px", borderRadius: "8px", background: "#ff4e70", color: "white", border: 0, marginRight: "8px" }}>
+              {shareBusy ? "Đang chia sẻ..." : "Chia sẻ hành trình đã chọn vào Nhà"}
+            </button>
+            <button type="button" disabled={shareBusy} onClick={() => setShareOpen(false)}>Đóng</button>
           </div>
         )}
       </section>
