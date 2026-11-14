@@ -21,10 +21,10 @@ function App() {
   const [sharedJourneyError, setSharedJourneyError] = useState("");
   const [returnHousehold, setReturnHousehold] = useState(null);
 
-  async function openSharedJourney(journey, household) {
+  async function openSharedJourney(journey, household, origin = "household") {
     if (!journey?.journey_id || !household?.id) return;
     setSharedJourneyContext({ householdId: household.id });
-    setReturnHousehold(household);
+    setReturnHousehold(origin === "home" ? null : household);
     setSharedJourneyMoments([]);
     setSharedJourneyError("");
     setSharedJourneyLoading(true);
