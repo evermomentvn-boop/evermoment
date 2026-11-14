@@ -28,7 +28,7 @@ FROM pg_constraint
 WHERE conrelid = 'public.journeys'::regclass
   AND contype IN ('u','p')
   AND (
-    SELECT array_agg(a.attname ORDER BY a.attname)
+    SELECT array_agg(a.attname::text ORDER BY a.attname::text)
     FROM unnest(conkey) AS k(attnum)
     JOIN pg_attribute a ON a.attrelid = conrelid AND a.attnum = k.attnum
   ) = ARRAY['customer_id','journey_id']::text[]
