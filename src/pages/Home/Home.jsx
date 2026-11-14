@@ -139,31 +139,21 @@ useEffect(() => {
 
     if (!user) return;
 setCurrentUser(user);
-    const { data: membership, error: membershipError } = await supabase
-      .from("household_member")
-.select("household_id, role")
-.eq("user_id", user.id)
-.eq("role", "owner")
-.limit(1)
-.maybeSingle();
-
-    if (membershipError) {
-      console.error("Load membership error:", membershipError);
-      return;
-    }
-
-    if (!membership) return;
-
+    // The house owner is recorded in households.created_by. Do not assume
+    // there is also a separate owner row in household_member.
     const { data: house, error: houseError } = await supabase
       .from("households")
       .select("*")
-      .eq("id", membership.household_id)
-      .single();
+      .eq("created_by", user.id)
+      .limit(1)
+      .maybeSingle();
 
     if (houseError) {
-      console.error("Load household error:", houseError);
+      console.error("Load owned household error:", houseError);
       return;
     }
+
+    if (!house) return;
 
     setHousehold(house);
     // Lấy danh sách tất cả Nhà mà tài khoản đã tham gia
@@ -197,7 +187,7 @@ if (joinedError) {
       avatar_url
     )
   `)
-  .eq("household_id", membership.household_id);
+  .eq("household_id", house.id);
 
 if (membersError) {
   console.error("Load household members error:", membersError);
