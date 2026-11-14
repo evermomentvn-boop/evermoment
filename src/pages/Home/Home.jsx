@@ -141,7 +141,7 @@ useEffect(() => {
     if (!user) return;
 setCurrentUser(user);
     // The house owner is recorded in households.created_by. Do not assume
-    // there is also a separate owner row in household_member.
+    // there is also a separate owner row in household_members.
     const { data: house, error: houseError } = await supabase
       .from("households")
       .select("*")
@@ -160,7 +160,7 @@ setCurrentUser(user);
     // Lấy danh sách tất cả Nhà mà tài khoản đã tham gia
 // Fetch memberships and houses separately: no unverified FK relationship needed.
 const { data: joinedMemberships, error: joinedError } = await supabase
-  .from("household_member")
+  .from("household_members")
   .select("household_id, role")
   .eq("user_id", user.id)
   .eq("role", "member");
@@ -193,7 +193,7 @@ if (joinedError) {
   }
 }
     const { data: members, error: membersError } = await supabase
-  .from("household_member")
+  .from("household_members")
   .select("user_id, role")
   .eq("household_id", house.id);
 
