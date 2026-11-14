@@ -4,6 +4,41 @@
 -- Review current RLS/storage policies and test with two accounts before production.
 BEGIN;
 
+-- Abort atomically if prerequisites or row-level security are missing.
+-- This avoids silently installing read policies on an unexpected schema.
+DO $preflight$
+BEGIN
+  IF to_regclass('public.household_journeys') IS NULL
+     OR to_regclass('public.journeys') IS NULL
+     OR to_regclass('public.journey_moments') IS NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public' AND c.relname = 'journeys' AND c.relrowsecurity
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public' AND c.relname = 'journey_moments' AND c.relrowsecurity
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'journeys'
+         AND column_name = 'id' AND udt_name = 'int8'
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'journey_moments'
+         AND column_name = 'journey_id' AND udt_name = 'text'
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'journey_moments'
+         AND column_name = 'customer_id' AND udt_name = 'uuid'
+     ) THEN
+    RAISE EXCEPTION 'Shared journey read-policy preflight failed; no changes applied';
+  END IF;
+END;
+$preflight$;
+
 CREATE OR REPLACE FUNCTION public.can_read_shared_journey(p_journey_row_id bigint)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
 AS $$
