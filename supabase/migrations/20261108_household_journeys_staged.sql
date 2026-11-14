@@ -20,6 +20,28 @@ BEGIN
      ) THEN
     RAISE EXCEPTION 'Expected public.household_members(household_id uuid, user_id uuid); no changes applied';
   END IF;
+  -- All referenced identifiers must match production before any DDL executes.
+  IF EXISTS (
+    WITH required(table_name, column_name, udt_name) AS (
+      VALUES ('households','id','uuid'), ('households','created_by','uuid'),
+             ('customers','id','uuid'), ('customers','auth_user_id','uuid'),
+             ('journeys','id','int8'), ('journeys','customer_id','uuid')
+    )
+    SELECT 1 FROM required r
+    LEFT JOIN information_schema.columns c
+      ON c.table_schema = 'public' AND c.table_name = r.table_name
+      AND c.column_name = r.column_name
+    WHERE c.udt_name IS DISTINCT FROM r.udt_name
+  ) THEN
+    RAISE EXCEPTION 'Household sharing prerequisites mismatch; no changes applied';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname = 'household_members'
+      AND c.relrowsecurity
+  ) THEN
+    RAISE EXCEPTION 'household_members RLS is disabled; review policies before installing sharing';
+  END IF;
 END;
 $preflight$;
 
