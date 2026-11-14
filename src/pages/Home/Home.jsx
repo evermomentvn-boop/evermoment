@@ -494,6 +494,27 @@ if (openedHousehold) {
 </div>
   </div>
 </section>
+{household && (
+  <button
+    type="button"
+    onClick={() => setOpenedHousehold(household)}
+    style={{
+      display: "block",
+      width: "calc(100% - 28px)",
+      margin: "12px 14px 18px",
+      padding: "14px 16px",
+      border: "1px solid #f2bac7",
+      borderRadius: "12px",
+      background: "#fff1f5",
+      color: "#a72c50",
+      fontWeight: 700,
+      cursor: "pointer",
+      textAlign: "center",
+    }}
+  >
+    🏠 Vào {household.name || "Nhà của tôi"} · Xem hành trình chung →
+  </button>
+)}
 <section className="recent-section">
   {/* DANH SÁCH NHÀ ĐÃ THAM GIA */}
 <section className="joined-households-section">
