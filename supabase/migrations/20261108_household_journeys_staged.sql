@@ -3,6 +3,26 @@
 -- Existing journeys.household_id remains supported during transition.
 BEGIN;
 
+-- Fail safely if the production schema differs from the verified structure.
+-- This migration expects the singular household_member table, not household_members.
+DO $preflight$
+BEGIN
+  IF to_regclass('public.household_member') IS NULL
+     OR NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'household_member'
+         AND column_name = 'household_id' AND udt_name = 'uuid'
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'household_member'
+         AND column_name = 'user_id' AND udt_name = 'uuid'
+     ) THEN
+    RAISE EXCEPTION 'Expected public.household_member(household_id uuid, user_id uuid); no changes applied';
+  END IF;
+END;
+$preflight$;
+
 CREATE TABLE IF NOT EXISTS public.household_journeys (
   household_id uuid NOT NULL REFERENCES public.households(id) ON DELETE CASCADE,
   journey_row_id bigint NOT NULL REFERENCES public.journeys(id) ON DELETE CASCADE,
