@@ -51,6 +51,43 @@ const [editJourneyImage, setEditJourneyImage] = useState(null);
 const [newJourneyDescription, setNewJourneyDescription] = useState("");
 const [openJourneyMenuId, setOpenJourneyMenuId] = useState(null);
 const [household, setHousehold] = useState(null);
+const [receivedJourneys, setReceivedJourneys] = useState([]);
+const [receivedError, setReceivedError] = useState("");
+useEffect(() => {
+  if (!household?.id || household.created_by !== authUser?.id) {
+    setReceivedJourneys([]);
+    setReceivedError("");
+    return;
+  }
+  let active = true;
+  async function refresh() {
+    const { data: links, error: linkError } = await supabase.from("household_journeys")
+      .select("journey_row_id").eq("household_id", household.id);
+    if (!active) return;
+    if (linkError) { setReceivedError(linkError.message); return; }
+    const ids = [...new Set((links || []).map(row => row.journey_row_id))];
+    if (!ids.length) { setReceivedJourneys([]); setReceivedError(""); return; }
+    const { data, error } = await supabase.from("journeys")
+      .select("id, journey_id, customer_id, household_id, title, description, image_url, created_at")
+      .in("id", ids);
+    if (!active) return;
+    if (error) { setReceivedError(error.message); return; }
+    setReceivedJourneys((data || []).filter(row =>
+      row.household_id !== household.id && row.customer_id !== customerId
+    ));
+    setReceivedError("");
+  }
+  refresh();
+  const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+  window.addEventListener("focus", refresh);
+  document.addEventListener("visibilitychange", onVisible);
+  return () => {
+    active = false;
+    window.removeEventListener("focus", refresh);
+    document.removeEventListener("visibilitychange", onVisible);
+  };
+}, [household?.id, household?.created_by, authUser?.id, customerId]);
+
 const [isRenamingHousehold, setIsRenamingHousehold] = useState(false);
 const [newHouseholdName, setNewHouseholdName] = useState("");
 const [joinedHouseholds, setJoinedHouseholds] = useState([]);
@@ -794,6 +831,25 @@ title="Bấm để vào không gian Nhà"
       )}
     </div>
   ))}
+    {receivedError && <p role="alert" style={{ color: "#b42318" }}>Lỗi tải hành trình Nhà: {receivedError}</p>}
+    {receivedJourneys.map(journey => (
+      <div className="journey-custom-block" key={`shared-${journey.id}`}>
+        <button type="button" className="journey-item"
+          onClick={() => onOpenSharedJourney?.(journey, household)}
+          style={{ width: "100%", textAlign: "left", cursor: "pointer", border: 0 }}>
+          <div className="journey-icon">
+            {journey.image_url
+              ? <img src={journey.image_url} alt={journey.title || "Hành trình"} className="journey-avatar-image" />
+              : "🌿"}
+          </div>
+          <div className="journey-content">
+            <strong>{journey.title || "Hành trình chưa đặt tên"}</strong>
+            <span>{journey.description || "Được chia sẻ vào Nhà"} · Chỉ xem</span>
+          </div>
+          <div className="journey-count"><b>›</b></div>
+        </button>
+      </div>
+    ))}
     <button
   className="create-journey"
   type="button"
