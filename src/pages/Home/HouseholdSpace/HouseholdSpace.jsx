@@ -20,6 +20,7 @@ const [reloadKey, setReloadKey] = useState(0);
 const [sharingAvailable, setSharingAvailable] = useState(false);
 const [ownedCustomerIds, setOwnedCustomerIds] = useState([]);
 const [linkedJourneyIds, setLinkedJourneyIds] = useState([]);
+const [legacyJourneyIds, setLegacyJourneyIds] = useState([]);
 const [unshareBusyId, setUnshareBusyId] = useState(null);
 const [currentUserId, setCurrentUserId] = useState(null);
 
@@ -39,7 +40,7 @@ useEffect(() => {
 }, []);
 
 async function unshareJourney(journey) {
-  if (!household?.id || !linkedJourneyIds.includes(journey.id) || unshareBusyId !== null) return;
+  if (!household?.id || !linkedJourneyIds.includes(journey.id) || legacyJourneyIds.includes(journey.id) || unshareBusyId !== null) return;
   if (!window.confirm("Ngừng chia sẻ hành trình này khỏi Nhà? Hành trình và ảnh/video gốc vẫn được giữ nguyên.")) return;
   setUnshareBusyId(journey.id);
   const { error } = await supabase.rpc("unshare_journey_from_household", {
@@ -100,6 +101,8 @@ useEffect(() => {
 
   async function loadHouseholdJourneys() {
     if (!household?.id) {
+      setLinkedJourneyIds([]);
+      setLegacyJourneyIds([]);
       setHouseholdJourneys([]);
       setJourneysLoading(false);
       return;
@@ -125,6 +128,7 @@ useEffect(() => {
     if (!cancelled) {
       setSharingAvailable(!links.error);
       setLinkedJourneyIds(ids);
+      setLegacyJourneyIds((legacy.data || []).map(row => row.id));
     }
     const error = legacy.error || (linksNotReady ? null : links.error) || shared.error;
     const byId = new Map();
@@ -443,7 +447,7 @@ useEffect(() => {
               {journey.description || "Kỷ niệm của gia đình"}
             </p>
           </div>
-          {linkedJourneyIds.includes(journey.id) && ownedCustomerIds.includes(journey.customer_id) && (
+          {linkedJourneyIds.includes(journey.id) && !legacyJourneyIds.includes(journey.id) && ownedCustomerIds.includes(journey.customer_id) && (
             <button type="button" disabled={unshareBusyId !== null}
               onClick={(event) => { event.stopPropagation(); unshareJourney(journey); }}
               aria-label={"Ngừng chia sẻ " + (journey.title || "hành trình")}
