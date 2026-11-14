@@ -193,14 +193,7 @@ if (joinedError) {
 }
     const { data: members, error: membersError } = await supabase
   .from("household_member")
-  .select(`
-    user_id,
-    role,
-    profiles (
-      display_name,
-      avatar_url
-    )
-  `)
+  .select("user_id, role")
   .eq("household_id", house.id);
 
 if (membersError) {
@@ -455,7 +448,7 @@ if (openedHousehold) {
 
     <div className="family-members">
   {householdMembers.map((member) => {
-    const name = member.profiles?.display_name || "Thành viên";
+    const name = member.user_id === currentUser?.id ? "Bạn" : "Thành viên";
 
     return (
   <button
@@ -483,7 +476,7 @@ if (openedHousehold) {
     </button>
 
     <h3>
-      {selectedMember.profiles?.display_name || "Thành viên"}
+      {selectedMember.user_id === currentUser?.id ? "Bạn" : "Thành viên"}
     </h3>
 
     <p>
