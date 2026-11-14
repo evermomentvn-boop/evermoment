@@ -54,6 +54,7 @@ const [household, setHousehold] = useState(null);
 const [isRenamingHousehold, setIsRenamingHousehold] = useState(false);
 const [newHouseholdName, setNewHouseholdName] = useState("");
 const [joinedHouseholds, setJoinedHouseholds] = useState([]);
+const [householdRefreshKey, setHouseholdRefreshKey] = useState(0);
 const [openedHousehold, setOpenedHousehold] = useState(initialOpenedHousehold);
 const [showJoinedHouseholds, setShowJoinedHouseholds] = useState(false);
 const [householdMembers, setHouseholdMembers] = useState([]);
@@ -201,12 +202,12 @@ if (membersError) {
   return;
 }
 
-setHouseholdMembers(members || []);
+setHouseholdMembers((members || []).filter(member => member.user_id !== house.created_by));
 console.log("DANH SÁCH THÀNH VIÊN:", members);
   }
 
   loadHousehold();
-}, []);
+}, [householdRefreshKey]);
 async function createHouseholdInvite() {
   if (!household?.id) {
     alert("Chưa tìm thấy Nhà của bạn.");
@@ -431,6 +432,7 @@ if (openedHousehold) {
   }
 
   console.log("JOIN HOUSEHOLD SUCCESS:", data);
+  setHouseholdRefreshKey(key => key + 1);
   alert("Đã tham gia Nhà thành công!");
 }}
   type="button"
