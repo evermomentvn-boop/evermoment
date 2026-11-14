@@ -277,14 +277,7 @@ useEffect(() => {
           title={name}
         >
           <div className="hs-member-avatar">
-            {false ? (
-              <img
-                src=""
-                alt={name}
-              />
-            ) : (
-              name.charAt(0).toUpperCase()
-            )}
+            {name.charAt(0).toUpperCase()}
           </div>
 
           <span className="hs-member-name">
