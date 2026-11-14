@@ -112,14 +112,14 @@ useEffect(() => {
     setJourneysError("");
 
     const legacy = await supabase.from("journeys")
-      .select("id, journey_id, customer_id, title, description, image_url, created_at")
+      .select("id, journey_id, customer_id, household_id, title, description, image_url, created_at")
       .eq("household_id", household.id);
     const links = await supabase.from("household_journeys")
       .select("journey_row_id").eq("household_id", household.id);
     const ids = (links.data || []).map((row) => row.journey_row_id);
     const shared = ids.length
       ? await supabase.from("journeys")
-          .select("id, journey_id, customer_id, title, description, image_url, created_at")
+          .select("id, journey_id, customer_id, household_id, title, description, image_url, created_at")
           .in("id", ids)
       : { data: [], error: null };
     // Preserve existing household journeys if the optional sharing feature is unavailable.
@@ -320,69 +320,10 @@ useEffect(() => {
 )}
       </section>
 
-      {/* KHOẢNH KHẮC */}
-      <section className="hs-section">
-        <div className="hs-section-heading">
-          <h2>Khoảnh khắc gần đây</h2>
-          <span>›</span>
-        </div>
-
-        <div className="hs-empty-card">
-          <span>📸</span>
-          <p>Khoảnh khắc từ các hành trình được chia sẻ vào Nhà sẽ xuất hiện ở đây.</p>
-        </div>
-
-        <button className="hs-share-button" type="button" disabled={!sharingAvailable || journeysLoading} onClick={showShareDialog}>
-          ＋ Chia sẻ hành trình
-        </button>
-        {!journeysLoading && !sharingAvailable && (
-          <p role="status" style={{ color: "#a43b3b", fontSize: "13px" }}>
-            Chia sẻ hành trình chưa được kích hoạt trên Supabase. Các hành trình hiện có vẫn xem được bình thường.
-          </p>
-        )}
-        {shareOpen && (
-          <div className="hs-empty-card" role="dialog" aria-label="Chia sẻ hành trình">
-            <h3>Chọn hành trình đưa vào Nhà</h3>
-            <p>Toàn bộ thành viên Nhà sẽ xem được hành trình được chia sẻ.</p>
-            {shareError && <p role="alert" style={{ color: "#c0392b" }}>{shareError}</p>}
-            {shareLoading && <p>Đang tải hành trình...</p>}
-            {!shareLoading && !shareError && shareCandidates.length === 0 && <p>Chưa có hành trình cá nhân.</p>}
-            {!shareLoading && shareCandidates.map((journey) => {
-              const alreadyInHouse = householdJourneys.some((item) => item.id === journey.id);
-              const selected = selectedShareJourneyId === journey.id;
-              return (
-                <button key={journey.id} type="button" disabled={shareBusy || alreadyInHouse}
-                  aria-pressed={selected}
-                  onClick={() => setSelectedShareJourneyId(journey.id)}
-                  style={{
-                    display: "block", width: "100%", padding: "10px", margin: "8px 0",
-                    border: selected ? "2px solid #ff4e70" : "1px solid #bbb",
-                    borderRadius: "8px",
-                    background: selected ? "#fff0f4" : "#fff",
-                    opacity: alreadyInHouse ? 0.65 : 1,
-                  }}>
-                  {selected ? "✓ " : "🌿 "}{journey.title || "Hành trình chưa đặt tên"}
-                  {alreadyInHouse ? " · Đã có trong Nhà" : ""}
-                </button>
-              );
-            })}
-            <button type="button" disabled={shareBusy || shareLoading || !sharingAvailable || !selectedShareJourneyId}
-              onClick={() => {
-                const journey = shareCandidates.find((item) => item.id === selectedShareJourneyId);
-                if (journey) shareJourney(journey);
-              }}
-              style={{ padding: "10px 14px", borderRadius: "8px", background: "#ff4e70", color: "white", border: 0, marginRight: "8px" }}>
-              {shareBusy ? "Đang chia sẻ..." : "Chia sẻ hành trình đã chọn vào Nhà"}
-            </button>
-            <button type="button" disabled={shareBusy} onClick={() => setShareOpen(false)}>Đóng</button>
-          </div>
-        )}
-      </section>
-
       {/* HÀNH TRÌNH */}
-<section className="hs-section">
+<section className="hs-section" id="hs-household-journeys">
   <div className="hs-section-heading">
-    <h2>Hành trình của Nhà</h2>
+    <h2>Hành trình chung của Nhà</h2>
     <span>{householdJourneys.length} hành trình</span>
   </div>
 
@@ -446,7 +387,7 @@ useEffect(() => {
             <span style={{ minWidth: 0, flex: 1 }}>
               <strong>{journey.title || "Hành trình chưa đặt tên"}</strong>
               <span style={{ display: "block", fontSize: "12px", color: "#777" }}>
-                {journey.description || "Kỷ niệm của gia đình"}
+                {journey.description || "Kỷ niệm của gia đình"}{linkedJourneyIds.includes(journey.id) && journey.household_id !== household.id ? " · Được chia sẻ vào Nhà" : ""}
               </span>
             </span>
           </button>
@@ -475,11 +416,70 @@ useEffect(() => {
   )}
 </section>
 
+      {/* KHOẢNH KHẮC */}
+      <section className="hs-section" id="hs-household-moments">
+        <div className="hs-section-heading">
+          <h2>Khoảnh khắc của Nhà</h2>
+          <span>›</span>
+        </div>
+
+        <div className="hs-empty-card">
+          <span>📸</span>
+          <p>Mở một Hành trình chung ở phía trên để xem đầy đủ ảnh, video và khoảnh khắc.</p>
+        </div>
+
+        <button className="hs-share-button" type="button" disabled={!sharingAvailable || journeysLoading} onClick={showShareDialog}>
+          ＋ Chia sẻ hành trình
+        </button>
+        {!journeysLoading && !sharingAvailable && (
+          <p role="status" style={{ color: "#a43b3b", fontSize: "13px" }}>
+            Chia sẻ hành trình chưa được kích hoạt trên Supabase. Các hành trình hiện có vẫn xem được bình thường.
+          </p>
+        )}
+        {shareOpen && (
+          <div className="hs-empty-card" role="dialog" aria-label="Chia sẻ hành trình">
+            <h3>Chọn hành trình đưa vào Nhà</h3>
+            <p>Toàn bộ thành viên Nhà sẽ xem được hành trình được chia sẻ.</p>
+            {shareError && <p role="alert" style={{ color: "#c0392b" }}>{shareError}</p>}
+            {shareLoading && <p>Đang tải hành trình...</p>}
+            {!shareLoading && !shareError && shareCandidates.length === 0 && <p>Chưa có hành trình cá nhân.</p>}
+            {!shareLoading && shareCandidates.map((journey) => {
+              const alreadyInHouse = householdJourneys.some((item) => item.id === journey.id);
+              const selected = selectedShareJourneyId === journey.id;
+              return (
+                <button key={journey.id} type="button" disabled={shareBusy || alreadyInHouse}
+                  aria-pressed={selected}
+                  onClick={() => setSelectedShareJourneyId(journey.id)}
+                  style={{
+                    display: "block", width: "100%", padding: "10px", margin: "8px 0",
+                    border: selected ? "2px solid #ff4e70" : "1px solid #bbb",
+                    borderRadius: "8px",
+                    background: selected ? "#fff0f4" : "#fff",
+                    opacity: alreadyInHouse ? 0.65 : 1,
+                  }}>
+                  {selected ? "✓ " : "🌿 "}{journey.title || "Hành trình chưa đặt tên"}
+                  {alreadyInHouse ? " · Đã có trong Nhà" : ""}
+                </button>
+              );
+            })}
+            <button type="button" disabled={shareBusy || shareLoading || !sharingAvailable || !selectedShareJourneyId}
+              onClick={() => {
+                const journey = shareCandidates.find((item) => item.id === selectedShareJourneyId);
+                if (journey) shareJourney(journey);
+              }}
+              style={{ padding: "10px 14px", borderRadius: "8px", background: "#ff4e70", color: "white", border: 0, marginRight: "8px" }}>
+              {shareBusy ? "Đang chia sẻ..." : "Chia sẻ hành trình đã chọn vào Nhà"}
+            </button>
+            <button type="button" disabled={shareBusy} onClick={() => setShareOpen(false)}>Đóng</button>
+          </div>
+        )}
+      </section>
+
       {/* THANH ĐIỀU HƯỚNG */}
       <nav className="hs-bottom-nav">
         <span>🏠<small>Nhà</small></span>
-        <span>📸<small>Khoảnh khắc</small></span>
-        <span>🌿<small>Hành trình</small></span>
+        <a href="#hs-household-moments">📸<small>Khoảnh khắc</small></a>
+        <a href="#hs-household-journeys">🌿<small>Hành trình</small></a>
         <span>♡<small>Gia đình</small></span>
       </nav>
 
