@@ -186,14 +186,7 @@ useEffect(() => {
 
       const { data, error } = await supabase
         .from("household_member")
-        .select(`
-          user_id,
-          role,
-          profiles (
-            display_name,
-            avatar_url
-          )
-        `)
+        .select("user_id, role")
         .eq("household_id", household.id);
 
       if (cancelled) return;
@@ -203,7 +196,7 @@ useEffect(() => {
         setMembersError("Không thể tải danh sách thành viên.");
         setMembers([]);
       } else {
-        setMembers(data || []);
+        setMembers((data || []).filter(member => member.user_id !== household.created_by));
       }
 
       setLoadingMembers(false);
@@ -273,7 +266,7 @@ useEffect(() => {
   {!loadingMembers && !membersError &&
     members.map((member) => {
       const name =
-        member.profiles?.display_name || "Thành viên";
+        member.user_id === currentUserId ? "Bạn" : "Thành viên";
 
       return (
         <button
@@ -284,9 +277,9 @@ useEffect(() => {
           title={name}
         >
           <div className="hs-member-avatar">
-            {member.profiles?.avatar_url ? (
+            {false ? (
               <img
-                src={member.profiles.avatar_url}
+                src=""
                 alt={name}
               />
             ) : (
@@ -299,7 +292,7 @@ useEffect(() => {
           </span>
 
           <small>
-            {member.role === "owner"
+            {member.user_id === household.created_by
               ? "Chủ Nhà"
               : "Thành viên"}
           </small>
@@ -321,12 +314,12 @@ useEffect(() => {
     </button>
 
     <h3>
-      {selectedMember.profiles?.display_name || "Thành viên"}
+      {selectedMember.user_id === currentUserId ? "Bạn" : "Thành viên"}
     </h3>
 
     <p>
       Vai trò:{" "}
-      {selectedMember.role === "owner"
+      {selectedMember.user_id === household.created_by
         ? "Chủ Nhà"
         : "Thành viên"}
     </p>
