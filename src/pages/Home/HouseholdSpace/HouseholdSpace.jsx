@@ -34,7 +34,7 @@ async function showShareDialog() {
   const { data: owners, error: ownersError } = await supabase
     .from("customers").select("id").eq("auth_user_id", userResult.user.id);
   if (ownersError) { setShareError(ownersError.message); setShareLoading(false); return; }
-  if (!owners?.length) { setShareLoading(false); return; }
+  if (!owners?.length) { setShareError("Tài khoản này chưa có kho cá nhân để chia sẻ hành trình."); setShareLoading(false); return; }
   const { data, error } = await supabase.from("journeys")
     .select("id, journey_id, title, customer_id")
     .in("customer_id", owners.map((owner) => owner.id))
@@ -45,7 +45,7 @@ async function showShareDialog() {
 }
 
 async function shareJourney(journey) {
-  if (!household?.id || shareBusy) return;
+  if (!household?.id || shareBusy || !sharingAvailable) return;
   setShareBusy(true);
   setShareError("");
   const { error } = await supabase.rpc("share_journey_to_household", {
@@ -117,6 +117,11 @@ useEffect(() => {
     cancelled = true;
   };
 }, [household?.id, reloadKey]);
+  useEffect(() => {
+    setShareOpen(false);
+    setSelectedShareJourneyId(null);
+    setShareError("");
+  }, [household?.id]);
   const [members, setMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState("");
