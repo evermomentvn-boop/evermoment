@@ -835,7 +835,7 @@ title="Bấm để vào không gian Nhà"
     {receivedJourneys.map(journey => (
       <div className="journey-custom-block" key={`shared-${journey.id}`}>
         <button type="button" className="journey-item"
-          onClick={() => onOpenSharedJourney?.(journey, household)}
+          onClick={() => onOpenSharedJourney?.(journey, household, "home")}
           style={{ width: "100%", textAlign: "left", cursor: "pointer", border: 0 }}>
           <div className="journey-icon">
             {journey.image_url
