@@ -157,25 +157,39 @@ setCurrentUser(user);
 
     setHousehold(house);
     // Lấy danh sách tất cả Nhà mà tài khoản đã tham gia
+// Fetch memberships and houses separately: no unverified FK relationship needed.
 const { data: joinedMemberships, error: joinedError } = await supabase
   .from("household_member")
-  .select(`
-    household_id,
-    role,
-    households (
-      id,
-      name,
-      created_by
-    )
-  `)
+  .select("household_id, role")
   .eq("user_id", user.id)
   .eq("role", "member");
 
 if (joinedError) {
   console.error("Load joined households error:", joinedError);
+  setJoinedHouseholds([]);
 } else {
-  setJoinedHouseholds(joinedMemberships || []);
-  console.log("NHÀ ĐÃ THAM GIA:", joinedMemberships);
+  const ids = [...new Set((joinedMemberships || [])
+    .map(row => row.household_id)
+    .filter(id => id && id !== house.id))];
+  if (!ids.length) {
+    setJoinedHouseholds([]);
+  } else {
+    const { data: houses, error: housesError } = await supabase
+      .from("households")
+      .select("id, name, created_by")
+      .in("id", ids);
+    if (housesError) {
+      console.error("Load joined house details error:", housesError);
+      setJoinedHouseholds([]);
+    } else {
+      const byId = new Map((houses || []).map(h => [h.id, h]));
+      setJoinedHouseholds(ids.filter(id => byId.has(id)).map(id => ({
+        household_id: id,
+        role: "member",
+        households: byId.get(id),
+      })));
+    }
+  }
 }
     const { data: members, error: membersError } = await supabase
   .from("household_member")
