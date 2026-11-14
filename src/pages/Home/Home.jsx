@@ -152,8 +152,8 @@ setCurrentUser(user);
       return;
     }
 
-    if (!membership) return;
-
+    // Membership in other houses must load even when this user owns no house.
+    if (membership) {
     const { data: house, error: houseError } = await supabase
       .from("households")
       .select("*")
@@ -166,6 +166,9 @@ setCurrentUser(user);
     }
 
     setHousehold(house);
+    } else {
+      setHousehold(null);
+    }
     // Lấy danh sách tất cả Nhà mà tài khoản đã tham gia
 const { data: joinedMemberships, error: joinedError } = await supabase
   .from("household_members")
@@ -197,7 +200,7 @@ if (joinedError) {
       avatar_url
     )
   `)
-  .eq("household_id", membership.household_id);
+  .eq("household_id", membership?.household_id || "00000000-0000-0000-0000-000000000000");
 
 if (membersError) {
   console.error("Load household members error:", membersError);
@@ -434,7 +437,7 @@ if (openedHousehold) {
   }
 
   console.log("JOIN HOUSEHOLD SUCCESS:", data);
-  alert("Đã tham gia Nhà thành công!");
+  alert("Đã tham gia Nhà thành công! Hãy tải lại trang để thấy Nhà vừa tham gia.");
 }}
   type="button"
 >
