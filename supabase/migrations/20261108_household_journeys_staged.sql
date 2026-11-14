@@ -4,21 +4,21 @@
 BEGIN;
 
 -- Fail safely if the production schema differs from the verified structure.
--- This migration expects the singular household_member table, not household_members.
+-- This migration expects the plural household_members table.
 DO $preflight$
 BEGIN
-  IF to_regclass('public.household_member') IS NULL
+  IF to_regclass('public.household_members') IS NULL
      OR NOT EXISTS (
        SELECT 1 FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = 'household_member'
+       WHERE table_schema = 'public' AND table_name = 'household_members'
          AND column_name = 'household_id' AND udt_name = 'uuid'
      )
      OR NOT EXISTS (
        SELECT 1 FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = 'household_member'
+       WHERE table_schema = 'public' AND table_name = 'household_members'
          AND column_name = 'user_id' AND udt_name = 'uuid'
      ) THEN
-    RAISE EXCEPTION 'Expected public.household_member(household_id uuid, user_id uuid); no changes applied';
+    RAISE EXCEPTION 'Expected public.household_members(household_id uuid, user_id uuid); no changes applied';
   END IF;
 END;
 $preflight$;
@@ -37,7 +37,7 @@ CREATE INDEX IF NOT EXISTS household_journeys_journey_idx
 ALTER TABLE public.household_journeys ENABLE ROW LEVEL SECURITY;
 
 -- Read links only for the owner of the destination house or its members.
--- SECURITY DEFINER helper avoids recursive household_member RLS evaluation.
+-- SECURITY DEFINER helper avoids recursive household_members RLS evaluation.
 CREATE OR REPLACE FUNCTION public.can_view_household_journey(p_household_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = ''
@@ -45,7 +45,7 @@ AS $$
   SELECT auth.uid() IS NOT NULL AND (
     EXISTS (SELECT 1 FROM public.households h
             WHERE h.id = p_household_id AND h.created_by = auth.uid())
-    OR EXISTS (SELECT 1 FROM public.household_member hm
+    OR EXISTS (SELECT 1 FROM public.household_members hm
                WHERE hm.household_id = p_household_id AND hm.user_id = auth.uid())
   );
 $$;
