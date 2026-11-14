@@ -4,7 +4,7 @@
 WITH required_columns(table_name, column_name, expected_type) AS (
  VALUES
  ('households','id','uuid'), ('households','created_by','uuid'),
- ('household_member','household_id','uuid'), ('household_member','user_id','uuid'),
+ ('household_members','household_id','uuid'), ('household_members','user_id','uuid'),
  ('customers','id','uuid'), ('customers','auth_user_id','uuid'),
  ('journeys','id','int8'), ('journeys','journey_id','text'),
  ('journeys','customer_id','uuid'), ('journeys','household_id','uuid'),
@@ -22,7 +22,7 @@ SELECT 'RLS', x.relname,
        CASE WHEN x.relrowsecurity THEN 'ENABLED' ELSE 'DISABLED' END
 FROM pg_class x JOIN pg_namespace n ON n.oid=x.relnamespace
 WHERE n.nspname='public' AND x.relname IN
- ('journeys','journey_moments','household_member','households','customers','household_journeys')
+ ('journeys','journey_moments','household_members','households','customers','household_journeys')
 UNION ALL
 SELECT 'table', 'public.household_journeys',
        CASE WHEN to_regclass('public.household_journeys') IS NULL
@@ -34,7 +34,7 @@ ORDER BY check_type, item;
 SELECT schemaname, tablename, policyname, cmd, roles, qual, with_check
 FROM pg_policies
 WHERE schemaname='public'
-  AND tablename IN ('households','household_member','customers',
+  AND tablename IN ('households','household_members','customers',
                     'journeys','journey_moments','household_journeys')
 ORDER BY tablename, policyname;
 
