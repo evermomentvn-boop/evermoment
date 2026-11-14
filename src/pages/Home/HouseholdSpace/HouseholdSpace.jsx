@@ -18,6 +18,41 @@ const [shareBusy, setShareBusy] = useState(false);
 const [shareLoading, setShareLoading] = useState(false);
 const [reloadKey, setReloadKey] = useState(0);
 const [sharingAvailable, setSharingAvailable] = useState(false);
+const [ownedCustomerIds, setOwnedCustomerIds] = useState([]);
+const [linkedJourneyIds, setLinkedJourneyIds] = useState([]);
+const [unshareBusyId, setUnshareBusyId] = useState(null);
+const [currentUserId, setCurrentUserId] = useState(null);
+
+useEffect(() => {
+  let active = true;
+  async function loadIdentity() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!active) return;
+    setCurrentUserId(user?.id || null);
+    if (!user) { setOwnedCustomerIds([]); return; }
+    const { data, error } = await supabase.from("customers")
+      .select("id").eq("auth_user_id", user.id);
+    if (active) setOwnedCustomerIds(error ? [] : (data || []).map(row => row.id));
+  }
+  loadIdentity();
+  return () => { active = false; };
+}, []);
+
+async function unshareJourney(journey) {
+  if (!household?.id || !linkedJourneyIds.includes(journey.id) || unshareBusyId !== null) return;
+  if (!window.confirm("Ngừng chia sẻ hành trình này khỏi Nhà? Hành trình và ảnh/video gốc vẫn được giữ nguyên.")) return;
+  setUnshareBusyId(journey.id);
+  const { error } = await supabase.rpc("unshare_journey_from_household", {
+    p_journey_row_id: journey.id, p_household_id: household.id,
+  });
+  if (error) {
+    setJourneysError("Không thể ngừng chia sẻ: " + error.message);
+  } else {
+    setReloadKey(n => n + 1);
+  }
+  setUnshareBusyId(null);
+}
+
 
 async function showShareDialog() {
   setShareError("");
@@ -87,7 +122,10 @@ useEffect(() => {
     // Preserve existing household journeys if the optional sharing feature is unavailable.
     // A failed linked-journey query must not hide successfully loaded legacy journeys.
     const linksNotReady = ["42P01", "PGRST205"].includes(links.error?.code);
-    if (!cancelled) setSharingAvailable(!links.error);
+    if (!cancelled) {
+      setSharingAvailable(!links.error);
+      setLinkedJourneyIds(ids);
+    }
     const error = legacy.error || (linksNotReady ? null : links.error) || shared.error;
     const byId = new Map();
     for (const row of [...(legacy.data || []), ...(shared.data || [])]) {
@@ -202,7 +240,7 @@ useEffect(() => {
           <p>Không gian lưu giữ yêu thương</p>
 
           <span className="hs-member-badge">
-            ♡ Bạn là thành viên
+            ♡ {household.created_by === currentUserId ? "Bạn là chủ Nhà" : "Bạn là thành viên"}
           </span>
         </div>
       </section>
@@ -399,12 +437,20 @@ useEffect(() => {
             <span style={{ fontSize: "30px" }}>🌿</span>
           )}
 
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <strong>{journey.title || "Hành trình chưa đặt tên"}</strong>
             <p style={{ fontSize: "12px", color: "#777" }}>
               {journey.description || "Kỷ niệm của gia đình"}
             </p>
           </div>
+          {linkedJourneyIds.includes(journey.id) && ownedCustomerIds.includes(journey.customer_id) && (
+            <button type="button" disabled={unshareBusyId !== null}
+              onClick={(event) => { event.stopPropagation(); unshareJourney(journey); }}
+              aria-label={"Ngừng chia sẻ " + (journey.title || "hành trình")}
+              style={{ padding: "8px", border: "1px solid #ddd", borderRadius: "8px", background: "#fff", cursor: "pointer" }}>
+              {unshareBusyId === journey.id ? "Đang xử lý..." : "Ngừng chia sẻ"}
+            </button>
+          )}
         </div>
       ))}
     </div>
