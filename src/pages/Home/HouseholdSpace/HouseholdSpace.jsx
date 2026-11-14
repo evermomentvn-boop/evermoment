@@ -17,6 +17,7 @@ const [shareError, setShareError] = useState("");
 const [shareBusy, setShareBusy] = useState(false);
 const [shareLoading, setShareLoading] = useState(false);
 const [reloadKey, setReloadKey] = useState(0);
+const [sharingAvailable, setSharingAvailable] = useState(false);
 
 async function showShareDialog() {
   setShareError("");
@@ -86,6 +87,7 @@ useEffect(() => {
     // Preserve existing household journeys if the optional sharing feature is unavailable.
     // A failed linked-journey query must not hide successfully loaded legacy journeys.
     const linksNotReady = ["42P01", "PGRST205"].includes(links.error?.code);
+    if (!cancelled) setSharingAvailable(!links.error);
     const error = legacy.error || (linksNotReady ? null : links.error) || shared.error;
     const byId = new Map();
     for (const row of [...(legacy.data || []), ...(shared.data || [])]) {
@@ -297,9 +299,14 @@ useEffect(() => {
           <p>Khoảnh khắc từ các hành trình được chia sẻ vào Nhà sẽ xuất hiện ở đây.</p>
         </div>
 
-        <button className="hs-share-button" type="button" onClick={showShareDialog}>
+        <button className="hs-share-button" type="button" disabled={!sharingAvailable || journeysLoading} onClick={showShareDialog}>
           ＋ Chia sẻ hành trình
         </button>
+        {!journeysLoading && !sharingAvailable && (
+          <p role="status" style={{ color: "#a43b3b", fontSize: "13px" }}>
+            Chia sẻ hành trình chưa được kích hoạt trên Supabase. Các hành trình hiện có vẫn xem được bình thường.
+          </p>
+        )}
         {shareOpen && (
           <div className="hs-empty-card" role="dialog" aria-label="Chia sẻ hành trình">
             <h3>Chọn hành trình đưa vào Nhà</h3>
@@ -326,7 +333,7 @@ useEffect(() => {
                 </button>
               );
             })}
-            <button type="button" disabled={shareBusy || shareLoading || !selectedShareJourneyId}
+            <button type="button" disabled={shareBusy || shareLoading || !sharingAvailable || !selectedShareJourneyId}
               onClick={() => {
                 const journey = shareCandidates.find((item) => item.id === selectedShareJourneyId);
                 if (journey) shareJourney(journey);
