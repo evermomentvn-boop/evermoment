@@ -126,9 +126,19 @@ useEffect(() => {
     const updates = {};
     await Promise.all(joinedHouseholds.map(async item => {
       const { data: recent } = await supabase.from("household_family_posts")
-        .select("created_at").eq("household_id", item.household_id)
-        .order("created_at", { ascending: false }).limit(1);
-      const latest = recent?.[0]?.created_at;
+        .select("id,created_at").eq("household_id", item.household_id)
+        .order("created_at", { ascending: false }).limit(100);
+      const postIds = (recent || []).map(post => post.id);
+      let latest = recent?.[0]?.created_at;
+      if (postIds.length) {
+        const [{ data: comments }, { data: reactions }] = await Promise.all([
+          supabase.from("household_family_comments").select("created_at,user_id").in("post_id", postIds).order("created_at", { ascending: false }).limit(1),
+          supabase.from("household_family_reactions").select("created_at,user_id").in("post_id", postIds).order("created_at", { ascending: false }).limit(1),
+        ]);
+        for (const activity of [...(comments || []), ...(reactions || [])]) {
+          if (activity.user_id !== authUser.id && (!latest || new Date(activity.created_at) > new Date(latest))) latest = activity.created_at;
+        }
+      }
       const seen = localStorage.getItem(`evermoment-family-seen:${authUser.id}:${item.household_id}`);
       if (latest && (!seen || new Date(latest) > new Date(seen))) updates[item.household_id] = true;
     }));
