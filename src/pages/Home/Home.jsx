@@ -258,7 +258,14 @@ if (membersError) {
   return;
 }
 
-setHouseholdMembers((members || []).filter(member => member.user_id !== house.created_by));
+const visibleMembers = (members || []).filter(member => member.user_id !== house.created_by);
+const { data: names, error: namesError } = await supabase.rpc("get_household_member_names", { p_household_id: house.id });
+if (namesError) console.warn("Member display names unavailable:", namesError.message);
+const nameMap = new Map((names || []).map(row => [row.user_id, row.display_name]));
+setHouseholdMembers(visibleMembers.map(member => ({
+  ...member,
+  display_name: nameMap.get(member.user_id) || "Chưa có tên hiển thị",
+})));
 console.log("DANH SÁCH THÀNH VIÊN:", members);
   }
 
@@ -506,7 +513,7 @@ if (openedHousehold) {
 
     <div className="family-members">
   {householdMembers.map((member) => {
-    const name = member.user_id === currentUser?.id ? "Bạn" : "Thành viên";
+    const name = member.user_id === currentUser?.id ? "Bạn" : member.display_name;
 
     return (
   <button
@@ -534,7 +541,7 @@ if (openedHousehold) {
     </button>
 
     <h3>
-      {selectedMember.user_id === currentUser?.id ? "Bạn" : "Thành viên"}
+      {selectedMember.user_id === currentUser?.id ? "Bạn" : selectedMember.display_name}
     </h3>
 
     <p>
@@ -560,9 +567,9 @@ if (openedHousehold) {
     <h3 style={{ marginTop: 0 }}>Quản lý thành viên Nhà</h3>
     <p>👑 Bạn · Chủ Nhà</p>
     {householdMembers.length === 0 && <p>Nhà chưa có thành viên.</p>}
-    {householdMembers.map((member, index) => (
+    {householdMembers.map((member) => (
       <div key={member.user_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: "1px solid #e4e6eb" }}>
-        <span>👤 Thành viên {index + 1}</span>
+        <span style={{ overflowWrap: "anywhere" }}>👤 {member.display_name}</span>
         <button type="button" disabled={memberActionBusy} onClick={() => removeHouseMember(member)}
           style={{ marginLeft: "auto", border: "1px solid #e4b4b4", background: "#fff", color: "#b42318", borderRadius: 9, padding: "8px 10px", cursor: "pointer" }}>
           {memberActionBusy ? "Đang xử lý..." : "Xóa khỏi Nhà"}
