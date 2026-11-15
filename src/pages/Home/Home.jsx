@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "./Home.css";
 import { supabase } from "../../supabase";
 import HouseholdSpace from "./HouseholdSpace/HouseholdSpace";
+import FamilyPost from "./HouseholdSpace/FamilyPost";
 export default function Home({
   onOpenSharedJourney,
   initialOpenedHousehold = null,
@@ -96,40 +97,49 @@ const [openedHousehold, setOpenedHousehold] = useState(initialOpenedHousehold);
 const [openedHouseholdTab, setOpenedHouseholdTab] = useState("home");
 const [familyActivities, setFamilyActivities] = useState([]);
 const [familyActivityError, setFamilyActivityError] = useState("");
+const [showAllFamilyPosts, setShowAllFamilyPosts] = useState(false);
+const [joinedHouseUpdates, setJoinedHouseUpdates] = useState({});
 const [showJoinedHouseholds, setShowJoinedHouseholds] = useState(false);
 useEffect(() => {
-  if (!authUser?.id || (!household?.id && joinedHouseholds.length === 0)) { setFamilyActivities([]); return; }
+  if (!authUser?.id) { setFamilyActivities([]); setJoinedHouseUpdates({}); return; }
   let alive = true;
   async function refreshFamilyActivity() {
-    const houses = [household, ...joinedHouseholds.map(item => item.households)]
-      .filter(item => item?.id);
-    const uniqueHouses = [...new Map(houses.map(item => [item.id, item])).values()];
-    if (!uniqueHouses.length) return;
-    const { data, error } = await supabase.from("household_family_posts")
-      .select("id,household_id,author_id,kind,body,created_at")
-      .in("household_id", uniqueHouses.map(item => item.id))
-      .order("created_at", { ascending: false }).limit(30);
-    if (!alive) return;
-    if (error) { setFamilyActivityError(error.message); return; }
-    const authorIds = [...new Set((data || []).map(item => item.author_id))];
-    let ownerNames = {};
-    if (authorIds.length) {
-      const { data: ownedHouses } = await supabase.from("households")
-        .select("created_by,name").in("created_by", authorIds);
-      ownerNames = Object.fromEntries((ownedHouses || []).map(item => [item.created_by, item.name]));
-    }
-    if (!alive) return;
-    setFamilyActivities((data || []).map(item => ({
-      ...item, house: uniqueHouses.find(h => h.id === item.household_id),
-      authorName: ownerNames[item.author_id] || "Thành viên Nhà",
-    })));
-    setFamilyActivityError("");
+    if (household?.id && household.created_by === authUser.id) {
+      const { data, error } = await supabase.from("household_family_posts")
+        .select("id,household_id,author_id,kind,body,photo_url,event_date,created_at")
+        .eq("household_id", household.id).order("created_at", { ascending: false }).limit(100);
+      if (!alive) return;
+      if (error) setFamilyActivityError(error.message);
+      else {
+        const ids = [...new Set((data || []).map(item => item.author_id))];
+        const { data: names } = ids.length
+          ? await supabase.from("households").select("created_by,name").in("created_by", ids)
+          : { data: [] };
+        if (!alive) return;
+        const ownerNames = Object.fromEntries((names || []).map(item => [item.created_by, item.name]));
+        setFamilyActivities((data || []).map(item => ({
+          ...item, authorName: ownerNames[item.author_id] || "Thành viên Nhà",
+        })));
+        setFamilyActivityError("");
+      }
+    } else { setFamilyActivities([]); setFamilyActivityError(""); }
+    const updates = {};
+    await Promise.all(joinedHouseholds.map(async item => {
+      const { data: recent } = await supabase.from("household_family_posts")
+        .select("created_at").eq("household_id", item.household_id)
+        .order("created_at", { ascending: false }).limit(1);
+      const latest = recent?.[0]?.created_at;
+      const seen = localStorage.getItem(`evermoment-family-seen:${authUser.id}:${item.household_id}`);
+      if (latest && (!seen || new Date(latest) > new Date(seen))) updates[item.household_id] = true;
+    }));
+    if (alive) setJoinedHouseUpdates(updates);
   }
   refreshFamilyActivity();
   const onFocus = () => refreshFamilyActivity();
   window.addEventListener("focus", onFocus);
-  return () => { alive = false; window.removeEventListener("focus", onFocus); };
-}, [authUser?.id, household?.id, joinedHouseholds]);
+  const timer = window.setInterval(refreshFamilyActivity, 30000);
+  return () => { alive = false; window.removeEventListener("focus", onFocus); window.clearInterval(timer); };
+}, [authUser?.id, household?.id, household?.created_by, joinedHouseholds]);
 
 const [householdMembers, setHouseholdMembers] = useState([]);
 const [selectedMember, setSelectedMember] = useState(null);
@@ -1074,26 +1084,13 @@ title="Bấm để vào không gian Nhà"
 <section className="family-activity">
   <div className="section-heading">
     <h2>Hoạt động gia đình</h2>
-    <button type="button" onClick={() => {
-      const item = familyActivities[0];
-      if (item?.house) { setOpenedHouseholdTab("family"); setOpenedHousehold(item.house); }
-    }}>Xem thêm ›</button>
+    <button type="button" onClick={() => setShowAllFamilyPosts(value => !value)}>{showAllFamilyPosts ? "Thu gọn" : "Xem thêm ›"}</button>
   </div>
   {familyActivityError && <p role="alert">Chưa tải được hoạt động: {familyActivityError}</p>}
-  <div className="activity-list">
-    {familyActivities.length === 0 && !familyActivityError && <p>Chưa có hoạt động gia đình mới.</p>}
-    {familyActivities.slice(0, 3).map(item => (
-      <button type="button" className="activity-item" key={item.id}
-        style={{ width: "100%", border: 0, textAlign: "left", cursor: "pointer", background: "transparent" }}
-        onClick={() => { if (item.house) { setOpenedHouseholdTab("family"); setOpenedHousehold(item.house); } }}>
-        <div className="activity-avatar">{item.authorName.slice(0, 1).toUpperCase()}</div>
-        <div className="activity-text">
-          <strong>{item.authorName}</strong>
-          <span>{item.kind === "date" ? "đã thêm ngày đặc biệt" : item.kind === "story" ? "đã đăng câu chuyện" : "đã gửi một lời nhắn"} vào {item.house?.name || "Nhà"}</span>
-          <small>{new Date(item.created_at).toLocaleString("vi-VN")}</small>
-        </div>
-        <span className="activity-icon">{item.kind === "date" ? "🎂" : item.kind === "story" ? "📖" : "💌"}</span>
-      </button>
+  <div className="hs-family-feed">
+    {!familyActivities.length && !familyActivityError && <p>Chưa có bài đăng nào gửi đến Nhà của mình.</p>}
+    {(showAllFamilyPosts ? familyActivities : familyActivities.slice(0, 3)).map(item => (
+      <FamilyPost key={item.id} post={item} userId={authUser?.id} authorName={item.authorName} />
     ))}
   </div>
 </section>
