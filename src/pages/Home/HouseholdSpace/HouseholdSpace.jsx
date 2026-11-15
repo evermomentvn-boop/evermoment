@@ -86,11 +86,21 @@ useEffect(() => {
   let active = true;
   async function checkFamily() {
     const { data } = await supabase.from("household_family_posts")
-      .select("created_at").eq("household_id", household.id)
-      .order("created_at", { ascending: false }).limit(1);
+      .select("id,created_at").eq("household_id", household.id)
+      .order("created_at", { ascending: false }).limit(100);
+    const postIds = (data || []).map(post => post.id);
+    let latest = data?.[0]?.created_at;
+    if (postIds.length) {
+      const [{ data: comments }, { data: reactions }] = await Promise.all([
+        supabase.from("household_family_comments").select("created_at,user_id").in("post_id", postIds).order("created_at", { ascending: false }).limit(1),
+        supabase.from("household_family_reactions").select("created_at,user_id").in("post_id", postIds).order("created_at", { ascending: false }).limit(1),
+      ]);
+      for (const item of [...(comments || []), ...(reactions || [])]) {
+        if (item.user_id !== currentUserId && (!latest || new Date(item.created_at) > new Date(latest))) latest = item.created_at;
+      }
+    }
     if (!active) return;
     const seen = localStorage.getItem(`evermoment-family-seen:${currentUserId}:${household.id}`);
-    const latest = data?.[0]?.created_at;
     if (activeHouseTab !== "family") setFamilyNew(Boolean(latest && (!seen || new Date(latest) > new Date(seen))));
   }
   checkFamily();
