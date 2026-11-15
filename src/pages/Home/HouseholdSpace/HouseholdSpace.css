@@ -422,3 +422,9 @@
 .hs-family-composer button { background: #ff4e70; border: 0; border-radius: 12px; padding: 12px; color: white; font-weight: 700; cursor: pointer; }
 .hs-family-composer button:disabled { opacity: .5; cursor: not-allowed; }
 .hs-family-error { color: #b42318; overflow-wrap: anywhere; }
+
+.hs-family-photo-picker { display: block; font-size: 13px; color: #b93355; font-weight: 600; cursor: pointer; }
+.hs-family-photo-picker input { display: block; width: 100%; margin-top: 8px; font-size: 12px; }
+.hs-family-photo-preview img { width: 100%; max-height: 240px; object-fit: contain; border-radius: 12px; }
+.hs-family-photo-preview button { margin-top: 6px; border: 0; background: #fff; color: #ad294c; cursor: pointer; }
+.hs-family-post-photo { display: block; width: 100%; max-height: 380px; object-fit: contain; border-radius: 12px; margin-top: 10px; }
