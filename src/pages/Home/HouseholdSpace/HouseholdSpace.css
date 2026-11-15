@@ -316,3 +316,41 @@
   cursor: pointer;
   font-size: 16px;
 }
+/* Quản trị thành viên: mở trực tiếp từ tiêu đề Thành viên trong Nhà */
+.hs-member-heading-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.hs-member-heading-button span { font-size: 23px; }
+.hs-management-panel {
+  margin: 0 0 18px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f7f8fb;
+}
+.hs-management-title, .hs-management-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hs-management-title {
+  justify-content: space-between;
+  padding: 2px 4px 12px;
+}
+.hs-management-title small { color: #777; }
+.hs-management-row {
+  width: 100%;
+  padding: 12px 4px;
+  border-top: 1px solid #e8eaf0;
+  color: #17243d;
+}
+.hs-management-row div { display: flex; flex-direction: column; gap: 3px; text-align: left; }
+.hs-management-row small { color: #777; font-size: 12px; }
+.hs-management-icon { font-size: 22px; }
+.hs-management-member { border-left: 0; border-right: 0; border-bottom: 0; background: transparent; cursor: pointer; }
+.hs-management-chevron { margin-left: auto; font-size: 20px; color: #ff657c; }
+.hs-management-note { margin: 12px 4px 0; font-size: 12px; line-height: 1.5; color: #777; }
