@@ -16,12 +16,17 @@ useEffect(() => {
   async function loadRecentMoments() {
     setHouseMomentsLoading(true);
     setHouseMomentsError("");
-    if (!householdJourneys.length) {
+    // Recent moments belong to the House being viewed, not journeys
+    // merely shared into it by visitors from other Houses.
+    const ownHouseJourneys = householdJourneys.filter(
+      journey => journey.household_id === household?.id
+    );
+    if (!ownHouseJourneys.length) {
       setRecentHouseMoments([]);
       setHouseMomentsLoading(false);
       return;
     }
-    const results = await Promise.all(householdJourneys.map(async journey => {
+    const results = await Promise.all(ownHouseJourneys.map(async journey => {
       const { data, error } = await supabase.from("journey_moments")
         .select("moment_data")
         .eq("journey_id", journey.journey_id)
@@ -47,7 +52,7 @@ useEffect(() => {
   }
   loadRecentMoments();
   return () => { cancelled = true; };
-}, [householdJourneys]);
+}, [householdJourneys, household?.id]);
 const [journeysLoading, setJourneysLoading] = useState(true);
 const [journeysError, setJourneysError] = useState("");
 const [shareOpen, setShareOpen] = useState(false);
@@ -537,7 +542,7 @@ useEffect(() => {
         )}
         {recentHouseMoments.length > 0 && (
           <div className="hs-recent-grid">
-            {recentHouseMoments.slice(0, activeHouseTab === "moments" ? undefined : 6).map((file, index) => (
+            {recentHouseMoments.slice(0, activeHouseTab === "moments" ? undefined : 3).map((file, index) => (
               <button type="button" className="hs-recent-item"
                 key={file.path || file.url || index}
                 onClick={() => onOpenJourney?.(file.journey)}
