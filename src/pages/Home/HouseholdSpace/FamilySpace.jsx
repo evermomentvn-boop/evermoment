@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../../supabase";
+import FamilyPost from "./FamilyPost";
 
 const SECTIONS = [
   ["messages", "💌 Góc yêu thương", "Những lời nhắn mới nhất của gia đình"],
@@ -10,6 +11,7 @@ const SECTIONS = [
 export default function FamilySpace({ household, userId }) {
   const [section, setSection] = useState("overview");
   const [posts, setPosts] = useState([]);
+  const [authorNames, setAuthorNames] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [text, setText] = useState("");
@@ -32,7 +34,15 @@ export default function FamilySpace({ household, userId }) {
       .eq("household_id", household.id)
       .order("created_at", { ascending: false });
     if (loadError) setError("Chưa tải được nội dung Gia đình. Hãy kiểm tra migration Supabase: " + loadError.message);
-    else { setPosts(data || []); setError(""); }
+    else {
+      setPosts(data || []);
+      const ids = [...new Set((data || []).map(item => item.author_id))];
+      if (ids.length) {
+        const { data: names } = await supabase.from("households").select("created_by,name").in("created_by", ids);
+        setAuthorNames(Object.fromEntries((names || []).map(item => [item.created_by, item.name])));
+      }
+      setError("");
+    }
     setLoading(false);
   }, [household?.id]);
 
@@ -91,10 +101,7 @@ export default function FamilySpace({ household, userId }) {
           <h2>Hoạt động gần đây</h2>
           {loading ? <p>Đang tải...</p> : posts.length === 0 ? <p>Chưa có lời nhắn hay câu chuyện nào. Hãy tạo kỷ niệm đầu tiên!</p> : (
             <div className="hs-family-feed">{posts.slice(0, 5).map(post => (
-              <article key={post.id}>
-                <small>{post.kind === "date" ? "🎂 Ngày đặc biệt" : post.kind === "story" ? "📖 Chuyện nhà mình" : "💌 Góc yêu thương"} · {formatDate(post.created_at)}</small>
-                <p>{post.body}</p>{post.photo_url && <img className="hs-family-post-photo" src={post.photo_url} alt="Ảnh trong bài đăng gia đình" loading="lazy" />}{post.event_date && <small>📅 {formatDate(post.event_date)}</small>}
-              </article>
+              <FamilyPost key={post.id} post={post} userId={userId} authorName={authorNames[post.author_id]} />
             ))}</div>
           )}
         </>
@@ -114,10 +121,7 @@ export default function FamilySpace({ household, userId }) {
           </form>
           {loading ? <p>Đang tải...</p> : filtered.length === 0 ? <p>Chưa có nội dung nào trong mục này.</p> : (
             <div className="hs-family-feed">{filtered.map(post => (
-              <article key={post.id}>
-                <small>{post.author_id === userId ? "Bạn" : "Thành viên trong Nhà"} · {formatDate(post.created_at)}</small>
-                <p>{post.body}</p>{post.event_date && <small>📅 {formatDate(post.event_date)}</small>}
-              </article>
+              <FamilyPost key={post.id} post={post} userId={userId} authorName={authorNames[post.author_id]} />
             ))}</div>
           )}
         </>
