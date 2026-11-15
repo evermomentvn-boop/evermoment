@@ -93,7 +93,44 @@ const [newHouseholdName, setNewHouseholdName] = useState("");
 const [joinedHouseholds, setJoinedHouseholds] = useState([]);
 const [householdRefreshKey, setHouseholdRefreshKey] = useState(0);
 const [openedHousehold, setOpenedHousehold] = useState(initialOpenedHousehold);
+const [openedHouseholdTab, setOpenedHouseholdTab] = useState("home");
+const [familyActivities, setFamilyActivities] = useState([]);
+const [familyActivityError, setFamilyActivityError] = useState("");
 const [showJoinedHouseholds, setShowJoinedHouseholds] = useState(false);
+useEffect(() => {
+  if (!authUser?.id || (!household?.id && joinedHouseholds.length === 0)) { setFamilyActivities([]); return; }
+  let alive = true;
+  async function refreshFamilyActivity() {
+    const houses = [household, ...joinedHouseholds.map(item => item.households)]
+      .filter(item => item?.id);
+    const uniqueHouses = [...new Map(houses.map(item => [item.id, item])).values()];
+    if (!uniqueHouses.length) return;
+    const { data, error } = await supabase.from("household_family_posts")
+      .select("id,household_id,author_id,kind,body,created_at")
+      .in("household_id", uniqueHouses.map(item => item.id))
+      .order("created_at", { ascending: false }).limit(30);
+    if (!alive) return;
+    if (error) { setFamilyActivityError(error.message); return; }
+    const authorIds = [...new Set((data || []).map(item => item.author_id))];
+    let ownerNames = {};
+    if (authorIds.length) {
+      const { data: ownedHouses } = await supabase.from("households")
+        .select("created_by,name").in("created_by", authorIds);
+      ownerNames = Object.fromEntries((ownedHouses || []).map(item => [item.created_by, item.name]));
+    }
+    if (!alive) return;
+    setFamilyActivities((data || []).map(item => ({
+      ...item, house: uniqueHouses.find(h => h.id === item.household_id),
+      authorName: ownerNames[item.author_id] || "Thành viên Nhà",
+    })));
+    setFamilyActivityError("");
+  }
+  refreshFamilyActivity();
+  const onFocus = () => refreshFamilyActivity();
+  window.addEventListener("focus", onFocus);
+  return () => { alive = false; window.removeEventListener("focus", onFocus); };
+}, [authUser?.id, household?.id, joinedHouseholds]);
+
 const [householdMembers, setHouseholdMembers] = useState([]);
 const [selectedMember, setSelectedMember] = useState(null);
 const [showOwnerMembers, setShowOwnerMembers] = useState(false);
@@ -309,7 +346,7 @@ if (openedHousehold) {
   return (
     <HouseholdSpace
       household={openedHousehold}
-      onBack={(refresh) => { setOpenedHousehold(null); if (refresh) setHouseholdRefreshKey(value => value + 1); }}
+      onBack={(refresh) => { setOpenedHouseholdTab("home"); setOpenedHousehold(null); if (refresh) setHouseholdRefreshKey(value => value + 1); }}
       onOpenJourney={(journey) => onOpenSharedJourney?.(journey, openedHousehold)}
       onSelectJourney={onSelectJourney}
     />
@@ -1037,39 +1074,27 @@ title="Bấm để vào không gian Nhà"
 <section className="family-activity">
   <div className="section-heading">
     <h2>Hoạt động gia đình</h2>
-    <button type="button">Xem thêm ›</button>
+    <button type="button" onClick={() => {
+      const item = familyActivities[0];
+      if (item?.house) { setOpenedHouseholdTab("family"); setOpenedHousehold(item.house); }
+    }}>Xem thêm ›</button>
   </div>
-
+  {familyActivityError && <p role="alert">Chưa tải được hoạt động: {familyActivityError}</p>}
   <div className="activity-list">
-    <div className="activity-item">
-      <div className="activity-avatar">M</div>
-      <div className="activity-text">
-        <strong>Mẹ</strong>
-        <span>đã thích một khoảnh khắc của An</span>
-        <small>12 phút trước</small>
-      </div>
-      <span className="activity-icon">❤️</span>
-    </div>
-
-    <div className="activity-item">
-      <div className="activity-avatar">B</div>
-      <div className="activity-text">
-        <strong>Bà</strong>
-        <span>vừa xem hành trình “Con lớn lên – An”</span>
-        <small>1 giờ trước</small>
-      </div>
-      <span className="activity-icon">👀</span>
-    </div>
-
-    <div className="activity-item">
-      <div className="activity-avatar">B</div>
-      <div className="activity-text">
-        <strong>Bố</strong>
-        <span>đã để lại một lời nhắn</span>
-        <small>Hôm qua</small>
-      </div>
-      <span className="activity-icon">💬</span>
-    </div>
+    {familyActivities.length === 0 && !familyActivityError && <p>Chưa có hoạt động gia đình mới.</p>}
+    {familyActivities.slice(0, 3).map(item => (
+      <button type="button" className="activity-item" key={item.id}
+        style={{ width: "100%", border: 0, textAlign: "left", cursor: "pointer", background: "transparent" }}
+        onClick={() => { if (item.house) { setOpenedHouseholdTab("family"); setOpenedHousehold(item.house); } }}>
+        <div className="activity-avatar">{item.authorName.slice(0, 1).toUpperCase()}</div>
+        <div className="activity-text">
+          <strong>{item.authorName}</strong>
+          <span>{item.kind === "date" ? "đã thêm ngày đặc biệt" : item.kind === "story" ? "đã đăng câu chuyện" : "đã gửi một lời nhắn"} vào {item.house?.name || "Nhà"}</span>
+          <small>{new Date(item.created_at).toLocaleString("vi-VN")}</small>
+        </div>
+        <span className="activity-icon">{item.kind === "date" ? "🎂" : item.kind === "story" ? "📖" : "💌"}</span>
+      </button>
+    ))}
   </div>
 </section>
 <nav className="bottom-nav">
