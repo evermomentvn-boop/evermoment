@@ -373,3 +373,22 @@
 .hs-tab-title { font-size: 20px; margin: 20px 16px 12px; }
 .hs-family-intro { min-height: 55vh; }
 .hs-family-intro > p { color: #697184; line-height: 1.6; }
+
+/* Active tab: tint both icon and caption, with a clear pill background. */
+.hs-bottom-nav button {
+  flex: 1;
+  min-height: 52px;
+  padding: 7px 3px;
+  border-radius: 14px;
+  color: #667085;
+  font-size: 20px;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.hs-bottom-nav button small { color: inherit; font-size: 11px; font-weight: inherit; }
+.hs-bottom-nav button.hs-nav-active,
+.hs-bottom-nav button[aria-current="page"] {
+  color: #f43f65;
+  background-color: #fff0f4;
+  font-weight: 700;
+}
+.hs-bottom-nav button:focus-visible { outline: 2px solid #f43f65; outline-offset: 2px; }
