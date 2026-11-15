@@ -71,11 +71,38 @@ const [legacyJourneyIds, setLegacyJourneyIds] = useState([]);
 const [unshareBusyId, setUnshareBusyId] = useState(null);
 const [currentUserId, setCurrentUserId] = useState(null);
 const [activeHouseTab, setActiveHouseTab] = useState(initialTab);
+const [familyNew, setFamilyNew] = useState(false);
 function navigateHouseTab(tab) {
+  if (tab === "family" && household?.id && currentUserId) {
+    localStorage.setItem(`evermoment-family-seen:${currentUserId}:${household.id}`, new Date().toISOString());
+    setFamilyNew(false);
+  }
   setActiveHouseTab(tab);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-useEffect(() => { setActiveHouseTab("home"); }, [household?.id]);
+useEffect(() => { setActiveHouseTab(initialTab); }, [household?.id, initialTab]);
+useEffect(() => {
+  if (!household?.id || !currentUserId) return;
+  let active = true;
+  async function checkFamily() {
+    const { data } = await supabase.from("household_family_posts")
+      .select("created_at").eq("household_id", household.id)
+      .order("created_at", { ascending: false }).limit(1);
+    if (!active) return;
+    const seen = localStorage.getItem(`evermoment-family-seen:${currentUserId}:${household.id}`);
+    const latest = data?.[0]?.created_at;
+    if (activeHouseTab !== "family") setFamilyNew(Boolean(latest && (!seen || new Date(latest) > new Date(seen))));
+  }
+  checkFamily();
+  const timer = window.setInterval(checkFamily, 30000);
+  return () => { active = false; window.clearInterval(timer); };
+}, [household?.id, currentUserId, activeHouseTab]);
+useEffect(() => {
+  if (activeHouseTab === "family" && household?.id && currentUserId) {
+    localStorage.setItem(`evermoment-family-seen:${currentUserId}:${household.id}`, new Date().toISOString());
+    setFamilyNew(false);
+  }
+}, [activeHouseTab, household?.id, currentUserId]);
 
 useEffect(() => {
   let active = true;
@@ -622,7 +649,7 @@ useEffect(() => {
           <button key={tab} type="button" onClick={() => navigateHouseTab(tab)}
             className={activeHouseTab === tab ? "hs-nav-active" : ""}
             aria-current={activeHouseTab === tab ? "page" : undefined}>
-            {icon}<small>{label}</small>
+            {icon}{tab === "family" && familyNew && <span className="hs-family-new-dot" aria-label="Có bài đăng mới">●</span>}<small>{label}</small>
           </button>
         ))}
       </nav>
