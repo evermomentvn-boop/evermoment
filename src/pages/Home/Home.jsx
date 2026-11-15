@@ -99,6 +99,8 @@ const [familyActivities, setFamilyActivities] = useState([]);
 const [familyActivityError, setFamilyActivityError] = useState("");
 const [showAllFamilyPosts, setShowAllFamilyPosts] = useState(false);
 const [joinedHouseUpdates, setJoinedHouseUpdates] = useState({});
+const [myPostInteractions, setMyPostInteractions] = useState([]);
+const [openedInteractionPost, setOpenedInteractionPost] = useState(null);
 const [showJoinedHouseholds, setShowJoinedHouseholds] = useState(false);
 useEffect(() => {
   if (!authUser?.id) { setFamilyActivities([]); setJoinedHouseUpdates({}); return; }
@@ -143,6 +145,34 @@ useEffect(() => {
       if (latest && (!seen || new Date(latest) > new Date(seen))) updates[item.household_id] = true;
     }));
     if (alive) setJoinedHouseUpdates(updates);
+    // Reactions/comments on posts I wrote in other Houses appear on MY home,
+    // without mixing the other House's general feed into my own House feed.
+    const joinedIds = joinedHouseholds.map(item => item.household_id);
+    if (!joinedIds.length) { if (alive) setMyPostInteractions([]); return; }
+    const { data: ownPosts, error: ownError } = await supabase.from("household_family_posts")
+      .select("id,household_id,author_id,kind,body,photo_url,event_date,created_at")
+      .eq("author_id", authUser.id).in("household_id", joinedIds).order("created_at", { ascending: false }).limit(100);
+    if (ownError || !alive) return;
+    const ids = (ownPosts || []).map(post => post.id);
+    if (!ids.length) { setMyPostInteractions([]); return; }
+    const [{ data: comments }, { data: reactions }] = await Promise.all([
+      supabase.from("household_family_comments").select("id,post_id,user_id,body,created_at").in("post_id", ids).neq("user_id", authUser.id).order("created_at", { ascending: false }).limit(100),
+      supabase.from("household_family_reactions").select("post_id,user_id,emoji,created_at").in("post_id", ids).neq("user_id", authUser.id).order("created_at", { ascending: false }).limit(100),
+    ]);
+    const actors = [...new Set([...(comments || []), ...(reactions || [])].map(item => item.user_id))];
+    const { data: names } = actors.length ? await supabase.from("households")
+      .select("created_by,name").in("created_by", actors) : { data: [] };
+    if (!alive) return;
+    const nameMap = Object.fromEntries((names || []).map(item => [item.created_by, item.name]));
+    const interactions = [
+      ...(comments || []).map(item => ({ ...item, type: "comment" })),
+      ...(reactions || []).map(item => ({ ...item, type: "reaction" })),
+    ].map(item => ({
+      ...item,
+      post: (ownPosts || []).find(post => post.id === item.post_id),
+      actorName: nameMap[item.user_id] || "Thành viên trong Nhà",
+    })).filter(item => item.post).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    setMyPostInteractions(interactions.slice(0, 30));
   }
   refreshFamilyActivity();
   const onFocus = () => refreshFamilyActivity();
@@ -1098,10 +1128,25 @@ title="Bấm để vào không gian Nhà"
     <button type="button" onClick={() => setShowAllFamilyPosts(value => !value)}>{showAllFamilyPosts ? "Thu gọn" : "Xem thêm ›"}</button>
   </div>
   {familyActivityError && <p role="alert">Chưa tải được hoạt động: {familyActivityError}</p>}
+  {myPostInteractions.length > 0 && <div className="hs-family-interaction-notices">
+    <h3>🔔 Tương tác với bài viết của bạn</h3>
+    {myPostInteractions.slice(0, showAllFamilyPosts ? 20 : 3).map((item, index) => (
+      <div key={item.type + ":" + (item.id || item.post_id + ":" + item.user_id)}>
+        <button type="button" className="hs-family-interaction-notice" onClick={() => {
+          setOpenedInteractionPost(openedInteractionPost === item.post_id ? null : item.post_id);
+        }}>
+          <strong>{item.actorName}</strong> {item.type === "comment" ? "đã bình luận" : "đã thả " + item.emoji + " vào"} bài viết của bạn
+          <small>{item.post.body.slice(0, 90)} · {new Date(item.created_at).toLocaleString("vi-VN")}</small>
+        </button>
+        {openedInteractionPost === item.post_id && <FamilyPost key={item.post_id} post={item.post}
+          userId={authUser?.id} authorName="Bạn" initiallyExpanded />}
+      </div>
+    ))}
+  </div>}
   <div className="hs-family-feed">
     {!familyActivities.length && !familyActivityError && <p>Chưa có bài đăng nào gửi đến Nhà của mình.</p>}
     {(showAllFamilyPosts ? familyActivities : familyActivities.slice(0, 3)).map(item => (
-      <FamilyPost key={item.id} post={item} userId={authUser?.id} authorName={item.authorName} />
+      <FamilyPost key={item.id} post={item} userId={authUser?.id} authorName={item.authorName} compact />
     ))}
   </div>
 </section>
