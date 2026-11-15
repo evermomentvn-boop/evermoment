@@ -110,7 +110,7 @@ export default function FamilySpace({ household, userId }) {
           <button className="hs-family-back" type="button" onClick={() => setSection("overview")}>← Gia đình</button>
           <h1>{SECTIONS.find(item => item[0] === section)?.[1]}</h1>
           <form className="hs-family-composer" onSubmit={publish}>
-            <textarea required maxLength={3000} value={text} onChange={event => setText(event.target.value)}
+            <textarea maxLength={3000} value={text} onChange={event => setText(event.target.value)}
               placeholder={section === "dates" ? "Ngày này có ý nghĩa gì với gia đình?" : section === "stories" ? "Kể một câu chuyện đáng nhớ..." : "Chia sẻ điều bạn muốn gửi đến gia đình..."} />
             <label className="hs-family-photo-picker">📷 Đính kèm ảnh
               <input type="file" accept="image/*" onChange={event => setPhoto(event.target.files?.[0] || null)} />
