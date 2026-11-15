@@ -169,6 +169,22 @@ useEffect(() => {
   const [membersError, setMembersError] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
   const [showMemberManagement, setShowMemberManagement] = useState(false);
+  const [leavingHouse, setLeavingHouse] = useState(false);
+  const [leaveError, setLeaveError] = useState("");
+  async function leaveCurrentHouse() {
+    if (!household?.id || !currentUserId || household.created_by === currentUserId || leavingHouse) return;
+    if (!window.confirm("Rời Nhà này? Tất cả Hành trình bạn chia sẻ vào Nhà sẽ bị thu hồi, nhưng dữ liệu gốc vẫn được giữ nguyên.")) return;
+    setLeavingHouse(true);
+    setLeaveError("");
+    const { error } = await supabase.rpc("leave_household_and_shares", { p_household_id: household.id });
+    if (error) {
+      setLeaveError("Không thể rời Nhà: " + error.message);
+      setLeavingHouse(false);
+      return;
+    }
+    setLeavingHouse(false);
+    onBack?.(true);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -275,7 +291,15 @@ useEffect(() => {
                 <span className="hs-management-chevron">›</span>
               </button>
             ))}
-            <p className="hs-management-note">Quyền xóa thành viên và rời Nhà sẽ được kích hoạt sau khi kiểm tra cơ chế thu hồi quyền trên Supabase.</p>
+            {household.created_by !== currentUserId && currentUserId && (
+              <div style={{ marginTop: 14 }}>
+                <button type="button" disabled={leavingHouse} onClick={leaveCurrentHouse}
+                  style={{ width: "100%", padding: 12, borderRadius: 10, border: "1px solid #e9b1b1", background: "#fff", color: "#b42318", fontWeight: 700, cursor: "pointer" }}>
+                  {leavingHouse ? "Đang rời Nhà..." : "🚪 Rời khỏi Nhà"}
+                </button>
+                {leaveError && <p role="alert" style={{ color: "#b42318" }}>{leaveError}</p>}
+              </div>
+            )}
           </div>
         )}
 
