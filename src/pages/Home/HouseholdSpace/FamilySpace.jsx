@@ -15,12 +15,20 @@ export default function FamilySpace({ household, userId }) {
   const [text, setText] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [busy, setBusy] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  useEffect(() => {
+    if (!photo) { setPhotoPreview(""); return; }
+    const url = URL.createObjectURL(photo);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
 
   const loadPosts = useCallback(async () => {
     if (!household?.id) return;
     setLoading(true);
     const { data, error: loadError } = await supabase.from("household_family_posts")
-      .select("id,author_id,kind,body,event_date,created_at")
+      .select("id,author_id,kind,body,event_date,photo_url,created_at")
       .eq("household_id", household.id)
       .order("created_at", { ascending: false });
     if (loadError) setError("Chưa tải được nội dung Gia đình. Hãy kiểm tra migration Supabase: " + loadError.message);
@@ -32,17 +40,31 @@ export default function FamilySpace({ household, userId }) {
 
   async function publish(event) {
     event.preventDefault();
-    if (!text.trim() || !userId || busy) return;
+    if ((!text.trim() && !photo) || !userId || busy) return;
+    if (photo && (!photo.type.startsWith("image/") || photo.size > 10 * 1024 * 1024)) { setError("Ảnh phải nhỏ hơn 10 MB và đúng định dạng ảnh."); return; }
     setBusy(true);
+    setError("");
+    let photoUrl = null;
+    let storagePath = null;
+    if (photo) {
+      const ext = (photo.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      storagePath = `household-family/${household.id}/${userId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("memories").upload(storagePath, photo, { contentType: photo.type, upsert: false });
+      if (uploadError) { setError("Không tải được ảnh: " + uploadError.message); setBusy(false); return; }
+      photoUrl = supabase.storage.from("memories").getPublicUrl(storagePath).data.publicUrl;
+    }
     const { error: saveError } = await supabase.from("household_family_posts").insert({
       household_id: household.id,
       author_id: userId,
       kind: section === "dates" ? "date" : section === "stories" ? "story" : "message",
-      body: text.trim(),
+      body: text.trim() || "📷 Khoảnh khắc gia đình",
+      photo_url: photoUrl,
       event_date: section === "dates" ? eventDate || null : null,
     });
-    if (saveError) setError("Không thể lưu: " + saveError.message);
-    else { setText(""); setEventDate(""); await loadPosts(); }
+    if (saveError) {
+      if (storagePath) await supabase.storage.from("memories").remove([storagePath]);
+      setError("Không thể lưu: " + saveError.message);
+    } else { setText(""); setPhoto(null); setEventDate(""); await loadPosts(); }
     setBusy(false);
   }
 
@@ -71,7 +93,7 @@ export default function FamilySpace({ household, userId }) {
             <div className="hs-family-feed">{posts.slice(0, 5).map(post => (
               <article key={post.id}>
                 <small>{post.kind === "date" ? "🎂 Ngày đặc biệt" : post.kind === "story" ? "📖 Chuyện nhà mình" : "💌 Góc yêu thương"} · {formatDate(post.created_at)}</small>
-                <p>{post.body}</p>{post.event_date && <small>📅 {formatDate(post.event_date)}</small>}
+                <p>{post.body}</p>{post.photo_url && <img className="hs-family-post-photo" src={post.photo_url} alt="Ảnh trong bài đăng gia đình" loading="lazy" />}{post.event_date && <small>📅 {formatDate(post.event_date)}</small>}
               </article>
             ))}</div>
           )}
@@ -83,8 +105,12 @@ export default function FamilySpace({ household, userId }) {
           <form className="hs-family-composer" onSubmit={publish}>
             <textarea required maxLength={3000} value={text} onChange={event => setText(event.target.value)}
               placeholder={section === "dates" ? "Ngày này có ý nghĩa gì với gia đình?" : section === "stories" ? "Kể một câu chuyện đáng nhớ..." : "Chia sẻ điều bạn muốn gửi đến gia đình..."} />
+            <label className="hs-family-photo-picker">📷 Đính kèm ảnh
+              <input type="file" accept="image/*" onChange={event => setPhoto(event.target.files?.[0] || null)} />
+            </label>
+            {photoPreview && <div className="hs-family-photo-preview"><img src={photoPreview} alt="Xem trước ảnh đính kèm" /><button type="button" onClick={() => setPhoto(null)}>Bỏ ảnh</button></div>}
             {section === "dates" && <label>Ngày kỷ niệm <input type="date" required value={eventDate} onChange={event => setEventDate(event.target.value)} /></label>}
-            <button type="submit" disabled={busy || !text.trim() || (section === "dates" && !eventDate)}>{busy ? "Đang lưu..." : "Đăng vào Nhà"}</button>
+            <button type="submit" disabled={busy || (!text.trim() && !photo) || (section === "dates" && !eventDate)}>{busy ? "Đang lưu..." : "Đăng vào Nhà"}</button>
           </form>
           {loading ? <p>Đang tải...</p> : filtered.length === 0 ? <p>Chưa có nội dung nào trong mục này.</p> : (
             <div className="hs-family-feed">{filtered.map(post => (
