@@ -450,3 +450,22 @@
 .hs-family-comment-form button { border: 0; border-radius: 10px; background: #ff4e70; color: white; padding: 0 12px; cursor: pointer; }
 .hs-family-comment-form button:disabled { opacity: .5; }
 .hs-family-new-dot { color: #ff4e70; font-size: 10px; vertical-align: top; margin-left: 2px; }
+
+/* Compact home feed cards and familiar press-and-hold reaction picker */
+.hs-family-post-compact { padding: 12px; }
+.hs-family-preview { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 0; text-align: left; border: 0; background: transparent; cursor: pointer; color: #172442; }
+.hs-family-preview img { width: 70px; height: 66px; object-fit: cover; border-radius: 10px; flex: 0 0 auto; }
+.hs-family-preview span { display: grid; gap: 5px; min-width: 0; }
+.hs-family-preview strong { font-size: 14px; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.hs-family-preview small { font-size: 11px; color: #8b8795; }
+.hs-family-actions { display: flex; align-items: center; gap: 10px; border-top: 1px solid #f1edf0; padding-top: 8px; }
+.hs-family-like-wrap { position: relative; }
+.hs-family-like, .hs-family-reaction-more { border: 0; background: transparent; padding: 9px 12px; cursor: pointer; color: #535b6d; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.hs-family-like { font-weight: 600; }
+.hs-family-reaction-popover { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 50; display: flex; gap: 2px; padding: 7px; border-radius: 30px; background: #fff; border: 1px solid #f1e5eb; box-shadow: 0 6px 25px #14203a25; white-space: nowrap; }
+.hs-family-reaction-popover button { font-size: 23px; padding: 5px; border: 0; background: transparent; cursor: pointer; transition: transform .15s; }
+.hs-family-reaction-popover button:hover { transform: scale(1.3); }
+.hs-family-interaction-notices { margin: 12px 0 18px; }
+.hs-family-interaction-notices h3 { font-size: 15px; margin-bottom: 10px; }
+.hs-family-interaction-notice { display: block; width: 100%; text-align: left; border: 1px solid #ffe1e9; background: #fff7fa; border-radius: 12px; padding: 11px; margin: 7px 0; color: #18243e; cursor: pointer; }
+.hs-family-interaction-notice small { display: block; color: #898390; margin-top: 5px; font-size: 11px; }
