@@ -7,6 +7,7 @@ export default function HouseholdSpace({
   household,
   onBack,
   onOpenJourney,
+  initialTab = "home",
 }) {
     const [householdJourneys, setHouseholdJourneys] = useState([]);
 const [recentHouseMoments, setRecentHouseMoments] = useState([]);
@@ -69,7 +70,7 @@ const [linkedJourneyIds, setLinkedJourneyIds] = useState([]);
 const [legacyJourneyIds, setLegacyJourneyIds] = useState([]);
 const [unshareBusyId, setUnshareBusyId] = useState(null);
 const [currentUserId, setCurrentUserId] = useState(null);
-const [activeHouseTab, setActiveHouseTab] = useState("home");
+const [activeHouseTab, setActiveHouseTab] = useState(initialTab);
 function navigateHouseTab(tab) {
   setActiveHouseTab(tab);
   window.scrollTo({ top: 0, behavior: "smooth" });
