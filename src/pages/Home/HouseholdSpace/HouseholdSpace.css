@@ -354,3 +354,22 @@
 .hs-management-member { border-left: 0; border-right: 0; border-bottom: 0; background: transparent; cursor: pointer; }
 .hs-management-chevron { margin-left: auto; font-size: 20px; color: #ff657c; }
 .hs-management-note { margin: 12px 4px 0; font-size: 12px; line-height: 1.5; color: #777; }
+
+/* Household bottom navigation: four interactive, accessible tabs */
+.hs-bottom-nav button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.hs-bottom-nav button.hs-nav-active { color: #ff4e70; font-weight: 700; }
+.hs-tab-title { font-size: 20px; margin: 20px 16px 12px; }
+.hs-family-intro { min-height: 55vh; }
+.hs-family-intro > p { color: #697184; line-height: 1.6; }
