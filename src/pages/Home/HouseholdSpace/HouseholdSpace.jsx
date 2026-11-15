@@ -23,6 +23,12 @@ const [linkedJourneyIds, setLinkedJourneyIds] = useState([]);
 const [legacyJourneyIds, setLegacyJourneyIds] = useState([]);
 const [unshareBusyId, setUnshareBusyId] = useState(null);
 const [currentUserId, setCurrentUserId] = useState(null);
+const [activeHouseTab, setActiveHouseTab] = useState("home");
+function navigateHouseTab(tab) {
+  setActiveHouseTab(tab);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+useEffect(() => { setActiveHouseTab("home"); }, [household?.id]);
 
 useEffect(() => {
   let active = true;
@@ -244,6 +250,7 @@ useEffect(() => {
         <span className="hs-brand">EverMoment</span>
       </header>
 
+      {activeHouseTab === "home" && <>
       {/* ẢNH BÌA NHÀ */}
       <section className="hs-cover">
         <div className="hs-cover-content">
@@ -374,6 +381,9 @@ useEffect(() => {
 )}
       </section>
 
+      </>}
+      {(activeHouseTab === "home" || activeHouseTab === "journeys") && <>
+      {activeHouseTab === "journeys" && <h1 className="hs-tab-title">🌿 Hành trình · {household.name || "Nhà"}</h1>}
       {/* HÀNH TRÌNH */}
 <section className="hs-section" id="hs-household-journeys">
   <div className="hs-section-heading">
@@ -470,6 +480,9 @@ useEffect(() => {
   )}
 </section>
 
+      </>}
+      {(activeHouseTab === "home" || activeHouseTab === "moments") && <>
+      {activeHouseTab === "moments" && <h1 className="hs-tab-title">📸 Khoảnh khắc · {household.name || "Nhà"}</h1>}
       {/* KHOẢNH KHẮC */}
       <section className="hs-section" id="hs-household-moments">
         <div className="hs-section-heading">
@@ -529,12 +542,31 @@ useEffect(() => {
         )}
       </section>
 
+      </>}
+      {activeHouseTab === "family" && (
+        <section className="hs-section hs-family-intro">
+          <h1>♡ Gia đình · {household.name || "Nhà"}</h1>
+          <p>Không gian dành cho lời nhắn, lời chúc và những câu chuyện của gia đình.</p>
+          <div className="hs-empty-card">
+            <span>♡</span>
+            <p>Tính năng Gia đình đang được xây dựng. Chưa có bài đăng hoặc dữ liệu tương tác nào được tạo.</p>
+          </div>
+        </section>
+      )}
       {/* THANH ĐIỀU HƯỚNG */}
-      <nav className="hs-bottom-nav">
-        <span>🏠<small>Nhà</small></span>
-        <a href="#hs-household-moments">📸<small>Khoảnh khắc</small></a>
-        <a href="#hs-household-journeys">🌿<small>Hành trình</small></a>
-        <span>♡<small>Gia đình</small></span>
+      <nav className="hs-bottom-nav" aria-label="Điều hướng trong Nhà">
+        {[
+          ["home", "🏠", "Nhà"],
+          ["moments", "📸", "Khoảnh khắc"],
+          ["journeys", "🌿", "Hành trình"],
+          ["family", "♡", "Gia đình"],
+        ].map(([tab, icon, label]) => (
+          <button key={tab} type="button" onClick={() => navigateHouseTab(tab)}
+            className={activeHouseTab === tab ? "hs-nav-active" : ""}
+            aria-current={activeHouseTab === tab ? "page" : undefined}>
+            {icon}<small>{label}</small>
+          </button>
+        ))}
       </nav>
 
     </main>
