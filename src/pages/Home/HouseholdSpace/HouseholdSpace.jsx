@@ -8,6 +8,46 @@ export default function HouseholdSpace({
   onOpenJourney,
 }) {
     const [householdJourneys, setHouseholdJourneys] = useState([]);
+const [recentHouseMoments, setRecentHouseMoments] = useState([]);
+const [houseMomentsLoading, setHouseMomentsLoading] = useState(false);
+const [houseMomentsError, setHouseMomentsError] = useState("");
+useEffect(() => {
+  let cancelled = false;
+  async function loadRecentMoments() {
+    setHouseMomentsLoading(true);
+    setHouseMomentsError("");
+    if (!householdJourneys.length) {
+      setRecentHouseMoments([]);
+      setHouseMomentsLoading(false);
+      return;
+    }
+    const results = await Promise.all(householdJourneys.map(async journey => {
+      const { data, error } = await supabase.from("journey_moments")
+        .select("moment_data")
+        .eq("journey_id", journey.journey_id)
+        .eq("customer_id", journey.customer_id);
+      return { journey, data: data || [], error };
+    }));
+    if (cancelled) return;
+    const errors = results.filter(item => item.error);
+    if (errors.length) setHouseMomentsError("Một số khoảnh khắc chưa tải được.");
+    const files = results.flatMap(({ journey, data }) =>
+      data.flatMap(row => {
+        const moment = row.moment_data;
+        if (!moment || !Array.isArray(moment.files)) return [];
+        const stamp = moment.created_at || moment.createdAt || moment.timestamp || moment.date?.iso || journey.created_at;
+        return moment.files.filter(file => file?.url).map(file => ({
+          ...file, journey, stamp,
+        }));
+      })
+    );
+    files.sort((a, b) => new Date(b.stamp || 0) - new Date(a.stamp || 0));
+    setRecentHouseMoments(files);
+    setHouseMomentsLoading(false);
+  }
+  loadRecentMoments();
+  return () => { cancelled = true; };
+}, [householdJourneys]);
 const [journeysLoading, setJourneysLoading] = useState(true);
 const [journeysError, setJourneysError] = useState("");
 const [shareOpen, setShareOpen] = useState(false);
@@ -486,14 +526,31 @@ useEffect(() => {
       {/* KHOẢNH KHẮC */}
       <section className="hs-section" id="hs-household-moments">
         <div className="hs-section-heading">
-          <h2>Khoảnh khắc của Nhà</h2>
+          <h2>Khoảnh khắc gần nhất</h2>
           <span>›</span>
         </div>
 
-        <div className="hs-empty-card">
-          <span>📸</span>
-          <p>Mở một Hành trình chung ở phía trên để xem đầy đủ ảnh, video và khoảnh khắc.</p>
-        </div>
+        {houseMomentsLoading && <p>Đang tải khoảnh khắc...</p>}
+        {houseMomentsError && <p role="alert">{houseMomentsError}</p>}
+        {!houseMomentsLoading && recentHouseMoments.length === 0 && (
+          <div className="hs-empty-card"><span>📸</span><p>Nhà chưa có ảnh hoặc video được chia sẻ.</p></div>
+        )}
+        {recentHouseMoments.length > 0 && (
+          <div className="hs-recent-grid">
+            {recentHouseMoments.slice(0, activeHouseTab === "moments" ? undefined : 6).map((file, index) => (
+              <button type="button" className="hs-recent-item"
+                key={file.path || file.url || index}
+                onClick={() => onOpenJourney?.(file.journey)}
+                aria-label={"Xem khoảnh khắc trong hành trình " + (file.journey.title || "")}>
+                {file.type?.startsWith("video") ? (
+                  <><video src={file.url} poster={file.thumbnail || undefined} muted playsInline preload="metadata" /><span className="hs-video-mark">▶</span></>
+                ) : (
+                  <img src={file.thumbnail || file.url} alt={file.journey.title || "Khoảnh khắc gia đình"} loading="lazy" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         <button className="hs-share-button" type="button" disabled={!sharingAvailable || journeysLoading} onClick={showShareDialog}>
           ＋ Chia sẻ hành trình
