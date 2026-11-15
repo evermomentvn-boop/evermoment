@@ -211,9 +211,7 @@ setCurrentUser(user);
       return;
     }
 
-    if (!house) return;
-
-    setHousehold(house);
+    setHousehold(house || null);
     // Lấy danh sách tất cả Nhà mà tài khoản đã tham gia
 // Fetch memberships and houses separately: no unverified FK relationship needed.
 const { data: joinedMemberships, error: joinedError } = await supabase
@@ -228,7 +226,7 @@ if (joinedError) {
 } else {
   const ids = [...new Set((joinedMemberships || [])
     .map(row => row.household_id)
-    .filter(id => id && id !== house.id))];
+    .filter(id => id && id !== house?.id))];
   if (!ids.length) {
     setJoinedHouseholds([]);
   } else {
@@ -249,6 +247,7 @@ if (joinedError) {
     }
   }
 }
+    if (!house) { setHouseholdMembers([]); return; }
     const { data: members, error: membersError } = await supabase
   .from("household_members")
   .select("user_id, role")
@@ -303,7 +302,7 @@ if (openedHousehold) {
   return (
     <HouseholdSpace
       household={openedHousehold}
-      onBack={() => setOpenedHousehold(null)}
+      onBack={(refresh) => { setOpenedHousehold(null); if (refresh) setHouseholdRefreshKey(value => value + 1); }}
       onOpenJourney={(journey) => onOpenSharedJourney?.(journey, openedHousehold)}
       onSelectJourney={onSelectJourney}
     />
