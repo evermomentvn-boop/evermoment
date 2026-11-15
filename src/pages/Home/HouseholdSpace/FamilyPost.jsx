@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../../../supabase";
 
 const EMOJIS = ["❤️", "🥰", "😂", "👍", "😮", "😢"];
 const typeName = { message: "💌 Góc yêu thương", date: "🎂 Ngày đặc biệt", story: "📖 Chuyện nhà mình" };
 
-export default function FamilyPost({ post, userId, authorName, onInteraction }) {
+export default function FamilyPost({ post, userId, authorName, onInteraction, compact = false, initiallyExpanded = false }) {
   const [reactions, setReactions] = useState([]);
   const [comments, setComments] = useState([]);
   const [draft, setDraft] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyExpanded);
+  const [fullPost, setFullPost] = useState(!compact);
+  const [showReactions, setShowReactions] = useState(false);
+  const pressTimer = useRef(null);
+  const longPressed = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const load = useCallback(async () => {
@@ -56,14 +60,27 @@ export default function FamilyPost({ post, userId, authorName, onInteraction }) 
     setBusy(false);
   }
 
+  useEffect(() => () => clearTimeout(pressTimer.current), []);
+  function startPress() {
+    longPressed.current = false;
+    clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => { longPressed.current = true; setShowReactions(true); }, 450);
+  }
+  function stopPress() { clearTimeout(pressTimer.current); }
   const ownEmoji = reactions.find(item => item.user_id === userId)?.emoji;
   const counts = EMOJIS.map(emoji => [emoji, reactions.filter(item => item.emoji === emoji).length]).filter(([, count]) => count);
   return (
-    <article className="hs-family-post">
+    <article className={compact && !fullPost ? "hs-family-post hs-family-post-compact" : "hs-family-post"}>
       <div className="hs-family-post-heading">
         <strong>🏠 {authorName || (post.author_id === userId ? "Bạn" : "Thành viên Nhà")}</strong>
         <small>{typeName[post.kind] || "Gia đình"} · {new Date(post.created_at).toLocaleString("vi-VN")}</small>
       </div>
+      {compact && !fullPost ? (
+        <button type="button" className="hs-family-preview" onClick={() => setFullPost(true)}>
+          {post.photo_url && <img src={post.photo_url} alt="" loading="lazy" />}
+          <span><strong>{post.body}</strong><small>Chạm để xem bài viết và tương tác ›</small></span>
+        </button>
+      ) : <>
       <p className="hs-family-post-body">{post.body}</p>
       {post.photo_url && <img className="hs-family-post-photo" src={post.photo_url} alt="Ảnh bài đăng" loading="lazy" />}
       {post.event_date && <small>📅 {new Date(post.event_date + "T12:00:00").toLocaleDateString("vi-VN")}</small>}
@@ -71,14 +88,26 @@ export default function FamilyPost({ post, userId, authorName, onInteraction }) 
         {counts.map(([emoji, count]) => <span key={emoji}>{emoji} {count}</span>)}
         <button type="button" onClick={() => setExpanded(value => !value)}>💬 {comments.length} bình luận</button>
       </div>
-      <div className="hs-family-reaction-bar">
-        {EMOJIS.map(emoji => <button type="button" key={emoji} title={emoji} disabled={busy}
-          aria-pressed={ownEmoji === emoji} className={ownEmoji === emoji ? "selected" : ""}
-          onClick={() => react(emoji)}>{emoji}</button>)}
+      <div className="hs-family-actions">
+        <div className="hs-family-like-wrap">
+          <button type="button" className="hs-family-like" disabled={busy}
+            onPointerDown={startPress} onPointerUp={stopPress} onPointerLeave={stopPress}
+            onContextMenu={event => { event.preventDefault(); stopPress(); setShowReactions(true); }}
+            onClick={() => {
+              if (longPressed.current) { longPressed.current = false; return; }
+              if (showReactions) { setShowReactions(false); return; }
+              react(ownEmoji || "❤️");
+            }}>
+            {ownEmoji || "♡"} {ownEmoji ? "Đã thích" : "Thích"}
+          </button>
+          {showReactions && <div className="hs-family-reaction-popover" role="group" aria-label="Chọn biểu cảm">
+            {EMOJIS.map(emoji => <button type="button" key={emoji} disabled={busy} aria-pressed={ownEmoji === emoji}
+              onClick={() => { setShowReactions(false); react(emoji); }}>{emoji}</button>)}
+          </div>}
+        </div>
+        <button type="button" className="hs-family-comment-toggle" onClick={() => setExpanded(value => !value)}>💬 Bình luận</button>
+        <button type="button" className="hs-family-reaction-more" onClick={() => setShowReactions(value => !value)} aria-label="Chọn biểu cảm khác">⌄</button>
       </div>
-      <button type="button" className="hs-family-comment-toggle" onClick={() => setExpanded(value => !value)}>
-        💬 {expanded ? "Ẩn bình luận" : "Bình luận / Trả lời"}
-      </button>
       {expanded && <div className="hs-family-comments">
         {comments.map(item => <div className="hs-family-comment" key={item.id}>
           <strong>{item.user_id === userId ? "Bạn" : "Thành viên Nhà"}</strong>
@@ -90,6 +119,7 @@ export default function FamilyPost({ post, userId, authorName, onInteraction }) 
           <button type="submit" disabled={busy || !draft.trim()}>Gửi</button>
         </form>
       </div>}
+      </>}
       {error && <small role="alert" className="hs-family-error">{error}</small>}
     </article>
   );
