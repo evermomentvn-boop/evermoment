@@ -1,4 +1,4 @@
--- EverMoment: show real Google profile names to members of the same household.
+-- EverMoment: show each member by their own House name, not Google profile.
 -- Execute in Supabase SQL Editor. No data is changed.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.get_household_member_names(p_household_id uuid)
@@ -18,13 +18,16 @@ BEGIN
   RETURN QUERY
   SELECT hm.user_id,
     COALESCE(
-      NULLIF(btrim(u.raw_user_meta_data ->> 'full_name'), ''),
-      NULLIF(btrim(u.raw_user_meta_data ->> 'name'), ''),
-      NULLIF(btrim(u.raw_user_meta_data ->> 'given_name'), ''),
-      'Chưa có tên hiển thị'
+      NULLIF(btrim(own_house.name), ''),
+      'Chưa đặt tên Nhà'
     )::text
   FROM public.household_members hm
-  JOIN auth.users u ON u.id = hm.user_id
+  LEFT JOIN LATERAL (
+    SELECT h.name FROM public.households h
+    WHERE h.created_by = hm.user_id
+    ORDER BY h.id
+    LIMIT 1
+  ) own_house ON true
   WHERE hm.household_id = p_household_id;
 END;
 $$;
