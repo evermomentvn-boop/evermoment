@@ -356,6 +356,7 @@ if (openedHousehold) {
   return (
     <HouseholdSpace
       household={openedHousehold}
+      initialTab={openedHouseholdTab}
       onBack={(refresh) => { setOpenedHouseholdTab("home"); setOpenedHousehold(null); if (refresh) setHouseholdRefreshKey(value => value + 1); }}
       onOpenJourney={(journey) => onOpenSharedJourney?.(journey, openedHousehold)}
       onSelectJourney={onSelectJourney}
