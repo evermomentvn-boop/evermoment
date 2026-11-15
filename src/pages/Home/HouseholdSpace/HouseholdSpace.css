@@ -398,3 +398,27 @@
 .hs-recent-item { position: relative; aspect-ratio: 1; overflow: hidden; border: 0; border-radius: 10px; padding: 0; background: #f1f3f7; cursor: pointer; }
 .hs-recent-item img, .hs-recent-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hs-video-mark { position: absolute; right: 8px; bottom: 6px; color: white; text-shadow: 0 1px 4px #222; font-size: 17px; }
+
+/* Family hub */
+.hs-family { padding: 18px 16px 30px; min-height: 55vh; color: #18243b; }
+.hs-family h1 { font-size: 25px; line-height: 1.2; margin: 16px 0; }
+.hs-family h2 { font-size: 17px; margin: 22px 0 12px; }
+.hs-family-hero { padding: 28px 20px; text-align: center; border-radius: 20px; background: linear-gradient(135deg,#ffe6df,#f4eaff); }
+.hs-family-hero h1 { font-size: 32px; margin: 0 0 8px; }
+.hs-family-hero p { color: #655e70; margin: 0 0 12px; }
+.hs-family-shortcuts { display: grid; gap: 10px; margin-top: 16px; }
+.hs-family-shortcuts button { position: relative; text-align: left; border: 1px solid #ffe0e8; border-radius: 16px; background: #fff7f9; padding: 16px 36px 16px 15px; cursor: pointer; color: inherit; }
+.hs-family-shortcuts strong,.hs-family-shortcuts small { display: block; }
+.hs-family-shortcuts small { color: #6e7280; margin-top: 5px; }
+.hs-family-shortcuts span { position: absolute; right: 16px; top: 23px; font-size: 22px; }
+.hs-family-feed { display: grid; gap: 12px; }
+.hs-family-feed article { border: 1px solid #f0e9ed; border-radius: 16px; padding: 15px; background: #fff; overflow-wrap: anywhere; }
+.hs-family-feed article small { color: #747785; }
+.hs-family-feed article p { white-space: pre-wrap; line-height: 1.6; }
+.hs-family-back { border: 0; background: none; padding: 8px 0; color: #565b6b; cursor: pointer; }
+.hs-family-composer { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: #f8f8fb; margin-bottom: 20px; }
+.hs-family-composer textarea { width: 100%; min-height: 110px; box-sizing: border-box; resize: vertical; border: 1px solid #e5e5ed; border-radius: 12px; padding: 12px; font: inherit; }
+.hs-family-composer label { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 13px; }
+.hs-family-composer button { background: #ff4e70; border: 0; border-radius: 12px; padding: 12px; color: white; font-weight: 700; cursor: pointer; }
+.hs-family-composer button:disabled { opacity: .5; cursor: not-allowed; }
+.hs-family-error { color: #b42318; overflow-wrap: anywhere; }
