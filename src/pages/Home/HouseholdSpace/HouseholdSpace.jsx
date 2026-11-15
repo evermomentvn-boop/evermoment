@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../supabase";
 import "./HouseholdSpace.css";
+import FamilySpace from "./FamilySpace";
 
 export default function HouseholdSpace({
   household,
@@ -605,16 +606,7 @@ useEffect(() => {
       </section>
 
       </>}
-      {activeHouseTab === "family" && (
-        <section className="hs-section hs-family-intro">
-          <h1>♡ Gia đình · {household.name || "Nhà"}</h1>
-          <p>Không gian dành cho lời nhắn, lời chúc và những câu chuyện của gia đình.</p>
-          <div className="hs-empty-card">
-            <span>♡</span>
-            <p>Tính năng Gia đình đang được xây dựng. Chưa có bài đăng hoặc dữ liệu tương tác nào được tạo.</p>
-          </div>
-        </section>
-      )}
+      {activeHouseTab === "family" && <FamilySpace household={household} userId={currentUserId} />}
       {/* THANH ĐIỀU HƯỚNG */}
       <nav className="hs-bottom-nav" aria-label="Điều hướng trong Nhà">
         {[
