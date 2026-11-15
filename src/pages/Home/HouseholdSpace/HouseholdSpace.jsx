@@ -168,6 +168,7 @@ useEffect(() => {
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
+  const [showMemberManagement, setShowMemberManagement] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -244,10 +245,39 @@ useEffect(() => {
 
       {/* THÀNH VIÊN */}
       <section className="hs-members">
-        <div className="hs-section-heading">
+        <button
+          type="button"
+          className="hs-section-heading hs-member-heading-button"
+          onClick={() => { setShowMemberManagement(value => !value); setSelectedMember(null); }}
+          aria-expanded={showMemberManagement}
+        >
           <h2>Thành viên trong Nhà</h2>
-          <span>›</span>
-        </div>
+          <span aria-hidden="true">{showMemberManagement ? "⌄" : "›"}</span>
+        </button>
+        {showMemberManagement && (
+          <div className="hs-management-panel">
+            <div className="hs-management-title">
+              <strong>Quản lý thành viên</strong>
+              <small>{household.created_by === currentUserId ? "Chủ Nhà" : "Thành viên"}</small>
+            </div>
+            <div className="hs-management-row">
+              <span className="hs-management-icon">👑</span>
+              <div><strong>Chủ Nhà</strong><small>{household.created_by === currentUserId ? "Bạn" : "Người tạo Nhà"}</small></div>
+            </div>
+            {loadingMembers && <p>Đang tải danh sách...</p>}
+            {membersError && <p role="alert">{membersError}</p>}
+            {!loadingMembers && !membersError && members.length === 0 && <p>Chưa có thành viên khác.</p>}
+            {!loadingMembers && !membersError && members.map(member => (
+              <button type="button" className="hs-management-row hs-management-member"
+                key={member.user_id} onClick={() => setSelectedMember(member)}>
+                <span className="hs-management-icon">👤</span>
+                <div><strong>{member.user_id === currentUserId ? "Bạn" : "Thành viên"}</strong><small>Thành viên Nhà</small></div>
+                <span className="hs-management-chevron">›</span>
+              </button>
+            ))}
+            <p className="hs-management-note">Quyền xóa thành viên và rời Nhà sẽ được kích hoạt sau khi kiểm tra cơ chế thu hồi quyền trên Supabase.</p>
+          </div>
+        )}
 
         <div className="hs-member-list">
 
