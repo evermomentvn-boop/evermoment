@@ -288,9 +288,12 @@ useEffect(() => {
         <button
           className="hs-back"
           type="button"
-          onClick={onBack}
+          onClick={() => {
+            if (activeHouseTab !== "home") navigateHouseTab("home");
+            else onBack?.();
+          }}
         >
-          ← Trang chủ
+          {activeHouseTab === "home" ? "← Trang chủ" : "← Quay lại Nhà"}
         </button>
 
         <span className="hs-brand">EverMoment</span>
