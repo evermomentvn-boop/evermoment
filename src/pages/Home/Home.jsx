@@ -96,6 +96,26 @@ const [openedHousehold, setOpenedHousehold] = useState(initialOpenedHousehold);
 const [showJoinedHouseholds, setShowJoinedHouseholds] = useState(false);
 const [householdMembers, setHouseholdMembers] = useState([]);
 const [selectedMember, setSelectedMember] = useState(null);
+const [showOwnerMembers, setShowOwnerMembers] = useState(false);
+const [memberActionBusy, setMemberActionBusy] = useState(false);
+const [memberActionError, setMemberActionError] = useState("");
+async function removeHouseMember(member) {
+  if (!household?.id || household.created_by !== currentUser?.id || member.user_id === currentUser.id || memberActionBusy) return;
+  if (!window.confirm("Xóa thành viên khỏi Nhà? Mọi Hành trình người này đã chia sẻ vào Nhà sẽ bị thu hồi. Ảnh/video và Hành trình gốc vẫn được giữ nguyên.")) return;
+  setMemberActionBusy(true);
+  setMemberActionError("");
+  const { error } = await supabase.rpc("remove_household_member_and_shares", {
+    p_household_id: household.id,
+    p_member_user_id: member.user_id,
+  });
+  if (error) {
+    setMemberActionError("Không thể xóa thành viên: " + error.message);
+  } else {
+    setSelectedMember(null);
+    setHouseholdRefreshKey(value => value + 1);
+  }
+  setMemberActionBusy(false);
+}
 const [currentUser, setCurrentUser] = useState(null);
 const [customerHouseholds, setCustomerHouseholds] = useState([]);
 const [joinHouseCode, setJoinHouseCode] = useState("");
@@ -527,10 +547,32 @@ if (openedHousehold) {
   </div>
 )}
 <div className="family-meta">
-  {householdMembers.filter((member) => member.role !== "owner").length} thành viên <span>•</span> Riêng tư
+  <button type="button" onClick={() => { setShowOwnerMembers(value => !value); setSelectedMember(null); }}
+    aria-expanded={showOwnerMembers}
+    style={{ border: 0, background: "transparent", color: "inherit", font: "inherit", fontWeight: 700, cursor: "pointer" }}>
+    {householdMembers.filter(member => member.role !== "owner").length} thành viên {showOwnerMembers ? "⌄" : "›"}
+  </button>
+  <span>•</span> Riêng tư
 </div>
   </div>
 </section>
+{showOwnerMembers && household?.created_by === currentUser?.id && (
+  <section style={{ margin: "12px 16px", padding: 16, borderRadius: 16, background: "#f7f8fb" }}>
+    <h3 style={{ marginTop: 0 }}>Quản lý thành viên Nhà</h3>
+    <p>👑 Bạn · Chủ Nhà</p>
+    {householdMembers.length === 0 && <p>Nhà chưa có thành viên.</p>}
+    {householdMembers.map((member, index) => (
+      <div key={member.user_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: "1px solid #e4e6eb" }}>
+        <span>👤 Thành viên {index + 1}</span>
+        <button type="button" disabled={memberActionBusy} onClick={() => removeHouseMember(member)}
+          style={{ marginLeft: "auto", border: "1px solid #e4b4b4", background: "#fff", color: "#b42318", borderRadius: 9, padding: "8px 10px", cursor: "pointer" }}>
+          {memberActionBusy ? "Đang xử lý..." : "Xóa khỏi Nhà"}
+        </button>
+      </div>
+    ))}
+    {memberActionError && <p role="alert" style={{ color: "#b42318" }}>{memberActionError}</p>}
+  </section>
+)}
 <section className="recent-section">
   {/* DANH SÁCH NHÀ ĐÃ THAM GIA */}
 <section className="joined-households-section">
