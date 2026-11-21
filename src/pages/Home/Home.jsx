@@ -24,6 +24,8 @@ onDeleteJourney,
 onUpdateJourney,
 }) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [mainTab, setMainTab] = useState("home");
+  const [notificationFilter, setNotificationFilter] = useState("all");
   const recentFiles = files.slice(0, 3);
   const today = new Date();
 
@@ -419,13 +421,13 @@ if (openedHousehold) {
     </span>
   </div>
 
-  <button className="icon-button" aria-label="Thông báo">
+  <button className="icon-button" aria-label="Thông báo" type="button" onClick={() => setMainTab("notifications")}>
     🔔
   </button>
 
   <button
     className="avatar"
-    onClick={() => setShowAccountMenu(!showAccountMenu)}
+    onClick={() => setMainTab("profile")}
     title="Tài khoản"
     type="button"
   >
@@ -484,6 +486,7 @@ if (openedHousehold) {
 )}
 </div>
       </header>
+      {mainTab === "home" && <>
       <section className="family-card">
   <div className="family-card-overlay">
     <div className="family-card-top">
@@ -1150,13 +1153,17 @@ title="Bấm để vào không gian Nhà"
     ))}
   </div>
 </section>
-<nav className="bottom-nav">
-  <button className="nav-item active" type="button">
+      </>}
+      {mainTab === "journeys" && <section className="em-tab-screen"><h1>🌿 Hành trình của tôi</h1><p>Những câu chuyện và khoảnh khắc bạn đang lưu giữ.</p><div className="em-tab-cards">{Object.values(journeys).map(journey => <button type="button" className="em-tab-card" key={journey.id} onClick={() => { onSelectJourney?.(journey.id); onOpenJourney?.(); }}><span className="em-tab-icon">{journey.image_url ? <img src={journey.image_url} alt="" /> : "🌿"}</span><span><strong>{journey.title || "Hành trình chưa đặt tên"}</strong><small>{(journeyMomentsById[journey.id] || []).length} khoảnh khắc · {journey.subtitle || "Hành trình của bạn"}</small></span><b>›</b></button>)}</div>{Object.keys(journeys).length === 0 && <p>Bạn chưa có hành trình nào.</p>}<button className="em-tab-primary" type="button" onClick={() => { setMainTab("home"); setShowCreateJourney(true); }}>＋ Tạo hành trình mới</button></section>}
+      {mainTab === "notifications" && <section className="em-tab-screen"><h1>🔔 Thông báo</h1><p>Cập nhật tương tác với bài viết và hoạt động từ những Nhà bạn tham gia.</p><div className="em-tab-filters">{[["all","Tất cả"],["comments","Bình luận"],["reactions","Cảm xúc"]].map(([key,label]) => <button type="button" key={key} className={notificationFilter === key ? "selected" : ""} onClick={() => setNotificationFilter(key)}>{label}</button>)}</div><div className="em-tab-cards">{myPostInteractions.filter(item => notificationFilter === "all" || (notificationFilter === "comments" ? item.type === "comment" : item.type !== "comment")).map((item,index) => <button className="em-tab-card" type="button" key={(item.id || item.post_id) + ":" + index} onClick={() => { setMainTab("home"); setOpenedInteractionPost(item.post_id); }}><span className="em-tab-icon">{item.type === "comment" ? "💬" : "❤️"}</span><span><strong>{item.actorName} {item.type === "comment" ? "đã bình luận" : "đã thả cảm xúc"} vào bài viết của bạn</strong><small>{new Date(item.created_at).toLocaleString("vi-VN")}</small></span><b>›</b></button>)}{notificationFilter === "all" && joinedHouseholds.filter(item => joinedHouseUpdates[item.household_id]).map(item => <button type="button" className="em-tab-card" key={item.household_id} onClick={() => { setOpenedHouseholdTab("family"); setOpenedHousehold(item.households); }}><span className="em-tab-icon">🏠</span><span><strong>Hoạt động mới từ {item.households?.name || "Nhà đã tham gia"}</strong><small>Chạm để xem hoạt động gia đình</small></span><b>›</b></button>)}</div>{!myPostInteractions.length && !Object.values(joinedHouseUpdates).some(Boolean) && <p>Chưa có thông báo mới.</p>}</section>}
+      {mainTab === "profile" && <section className="em-tab-screen"><h1>👤 Cá nhân</h1><div className="em-profile-hero"><div className="em-profile-avatar">{(currentUser?.email || "E").charAt(0).toUpperCase()}</div><h2>{currentUser?.user_metadata?.full_name || "Tài khoản EverMoment"}</h2><p>{currentUser?.email || ""}</p></div><div className="em-tab-cards"><button type="button" className="em-tab-card" onClick={() => setMainTab("home")}><span>🏠</span><strong>Nhà của tôi</strong><b>›</b></button><button type="button" className="em-tab-card" onClick={() => setMainTab("journeys")}><span>🌿</span><strong>Hành trình của tôi</strong><b>›</b></button><div className="em-tab-card"><span>🔒</span><span><strong>Quyền riêng tư</strong><small>Nhà riêng tư và nội dung được chia sẻ theo quyền thành viên.</small></span></div><button type="button" className="em-tab-card em-logout" onClick={() => onLogout?.()}><span>↪</span><strong>Đăng xuất</strong><b>›</b></button></div></section>}
+<nav className="bottom-nav" aria-label="Điều hướng EverMoment">
+  <button className={`nav-item ${mainTab === "home" ? "active" : ""}`} type="button" onClick={() => setMainTab("home")}>
     <span>⌂</span>
     <small>Trang chủ</small>
   </button>
 
-  <button className="nav-item" type="button">
+  <button className={`nav-item ${mainTab === "journeys" ? "active" : ""}`} type="button" onClick={() => setMainTab("journeys")}>
     <span>▱</span>
     <small>Hành trình</small>
   </button>
@@ -1165,12 +1172,12 @@ title="Bấm để vào không gian Nhà"
     +
   </button>
 
-  <button className="nav-item" type="button">
+  <button className={`nav-item ${mainTab === "notifications" ? "active" : ""}`} type="button" onClick={() => setMainTab("notifications")}>
     <span>♧</span>
     <small>Thông báo</small>
   </button>
 
-  <button className="nav-item" type="button">
+  <button className={`nav-item ${mainTab === "profile" ? "active" : ""}`} type="button" onClick={() => setMainTab("profile")}>
     <span>♙</span>
     <small>Cá nhân</small>
   </button>
