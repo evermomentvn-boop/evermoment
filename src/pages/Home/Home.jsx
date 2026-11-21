@@ -5,6 +5,8 @@ import HouseholdSpace from "./HouseholdSpace/HouseholdSpace";
 import FamilyPost from "./HouseholdSpace/FamilyPost";
 export default function Home({
   onOpenSharedJourney,
+  mainTab = "home",
+  onMainTabChange,
   initialOpenedHousehold = null,
     customerId,
     authUser,
@@ -24,7 +26,7 @@ onDeleteJourney,
 onUpdateJourney,
 }) {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
-  const [mainTab, setMainTab] = useState("home");
+  const setMainTab = (tab) => onMainTabChange?.(tab);
   const [notificationFilter, setNotificationFilter] = useState("all");
   const recentFiles = files.slice(0, 3);
   const today = new Date();
@@ -1001,52 +1003,7 @@ title="Bấm để vào không gian Nhà"
         <small>Bắt đầu một hành trình mới của bạn</small>
       </span>
     </button>
-    {showCreateJourney && (
-  <div className="create-journey-form">
-    <h3>Tạo hành trình mới</h3>
 
-    <input
-      type="text"
-      placeholder="Tên hành trình..."
-      value={newJourneyTitle}
-  onChange={(e) => setNewJourneyTitle(e.target.value)}
-    />
-
-    <textarea
-  placeholder="Mô tả hành trình..."
-  rows="3"
-  value={newJourneyDescription}
-  onChange={(e) => setNewJourneyDescription(e.target.value)}
-/>
-
-    <div className="create-journey-form-actions">
-      <button
-        type="button"
-        onClick={() => setShowCreateJourney(false)}
-      >
-        Hủy
-      </button>
-
-      <button
-  type="button"
-  onClick={() => {
-    if (!newJourneyTitle.trim()) return;
-
-    onCreateJourney?.(
-      newJourneyTitle.trim(),
-      newJourneyDescription.trim()
-    );
-
-    setNewJourneyTitle("");
-    setNewJourneyDescription("");
-    setShowCreateJourney(false);
-  }}
->
-  Tạo hành trình
-</button>
-    </div>
-  </div>
-)}
   </div>
 </section>
 <section className="memory-lookback">
@@ -1125,7 +1082,55 @@ title="Bấm để vào không gian Nhà"
 )}
   </div>
 </section>
-<section className="family-activity">
+
+      </>}
+      {mainTab === "journeys" && <section className="em-tab-screen"><h1>🌿 Hành trình của tôi</h1><p>Những câu chuyện và khoảnh khắc bạn đang lưu giữ.</p><div className="em-tab-cards">{Object.values(journeys).map(journey => <button type="button" className="em-tab-card" key={journey.id} onClick={() => { onSelectJourney?.(journey.id); onOpenJourney?.(); }}><span className="em-tab-icon">{journey.image_url ? <img src={journey.image_url} alt="" /> : "🌿"}</span><span><strong>{journey.title || "Hành trình chưa đặt tên"}</strong><small>{(journeyMomentsById[journey.id] || []).length} khoảnh khắc · {journey.subtitle || "Hành trình của bạn"}</small></span><b>›</b></button>)}</div>{Object.keys(journeys).length === 0 && <p>Bạn chưa có hành trình nào.</p>}<button className="em-tab-primary" type="button" onClick={() => setShowCreateJourney(value => !value)}>＋ Tạo hành trình mới</button>    {showCreateJourney && (
+  <div className="create-journey-form">
+    <h3>Tạo hành trình mới</h3>
+
+    <input
+      type="text"
+      placeholder="Tên hành trình..."
+      value={newJourneyTitle}
+  onChange={(e) => setNewJourneyTitle(e.target.value)}
+    />
+
+    <textarea
+  placeholder="Mô tả hành trình..."
+  rows="3"
+  value={newJourneyDescription}
+  onChange={(e) => setNewJourneyDescription(e.target.value)}
+/>
+
+    <div className="create-journey-form-actions">
+      <button
+        type="button"
+        onClick={() => setShowCreateJourney(false)}
+      >
+        Hủy
+      </button>
+
+      <button
+  type="button"
+  onClick={() => {
+    if (!newJourneyTitle.trim()) return;
+
+    onCreateJourney?.(
+      newJourneyTitle.trim(),
+      newJourneyDescription.trim()
+    );
+
+    setNewJourneyTitle("");
+    setNewJourneyDescription("");
+    setShowCreateJourney(false);
+  }}
+>
+  Tạo hành trình
+</button>
+    </div>
+  </div>
+)}</section>}
+      {mainTab === "notifications" && <section className="em-tab-screen"><h1>🔔 Thông báo & hoạt động gia đình</h1><p>Bài đăng gửi đến Nhà của bạn và những tương tác với bài viết bạn đã chia sẻ.</p><div className="em-tab-filters">{[["all","Tất cả"],["comments","Bình luận"],["reactions","Cảm xúc"]].map(([key,label]) => <button type="button" key={key} className={notificationFilter === key ? "selected" : ""} onClick={() => setNotificationFilter(key)}>{label}</button>)}</div><div className="em-tab-cards">{notificationFilter === "all" && joinedHouseholds.filter(item => joinedHouseUpdates[item.household_id]).map(item => <button type="button" className="em-tab-card" key={item.household_id} onClick={() => { setOpenedHouseholdTab("family"); setOpenedHousehold(item.households); }}><span className="em-tab-icon">🏠</span><span><strong>Hoạt động mới từ {item.households?.name || "Nhà đã tham gia"}</strong><small>Chạm để xem hoạt động gia đình</small></span><b>›</b></button>)}</div><section className="family-activity">
   <div className="section-heading">
     <h2>Hoạt động gia đình</h2>
     <button type="button" onClick={() => setShowAllFamilyPosts(value => !value)}>{showAllFamilyPosts ? "Thu gọn" : "Xem thêm ›"}</button>
@@ -1133,7 +1138,7 @@ title="Bấm để vào không gian Nhà"
   {familyActivityError && <p role="alert">Chưa tải được hoạt động: {familyActivityError}</p>}
   {myPostInteractions.length > 0 && <div className="hs-family-interaction-notices">
     <h3>🔔 Tương tác với bài viết của bạn</h3>
-    {myPostInteractions.slice(0, showAllFamilyPosts ? 20 : 3).map((item, index) => (
+    {myPostInteractions.filter(item => notificationFilter === "all" || (notificationFilter === "comments" ? item.type === "comment" : item.type !== "comment")).slice(0, showAllFamilyPosts ? 20 : 3).map((item, index) => (
       <div key={item.type + ":" + (item.id || item.post_id + ":" + item.user_id)}>
         <button type="button" className="hs-family-interaction-notice" onClick={() => {
           setOpenedInteractionPost(openedInteractionPost === item.post_id ? null : item.post_id);
@@ -1152,10 +1157,7 @@ title="Bấm để vào không gian Nhà"
       <FamilyPost key={item.id} post={item} userId={authUser?.id} authorName={item.authorName} compact />
     ))}
   </div>
-</section>
-      </>}
-      {mainTab === "journeys" && <section className="em-tab-screen"><h1>🌿 Hành trình của tôi</h1><p>Những câu chuyện và khoảnh khắc bạn đang lưu giữ.</p><div className="em-tab-cards">{Object.values(journeys).map(journey => <button type="button" className="em-tab-card" key={journey.id} onClick={() => { onSelectJourney?.(journey.id); onOpenJourney?.(); }}><span className="em-tab-icon">{journey.image_url ? <img src={journey.image_url} alt="" /> : "🌿"}</span><span><strong>{journey.title || "Hành trình chưa đặt tên"}</strong><small>{(journeyMomentsById[journey.id] || []).length} khoảnh khắc · {journey.subtitle || "Hành trình của bạn"}</small></span><b>›</b></button>)}</div>{Object.keys(journeys).length === 0 && <p>Bạn chưa có hành trình nào.</p>}<button className="em-tab-primary" type="button" onClick={() => { setMainTab("home"); setShowCreateJourney(true); }}>＋ Tạo hành trình mới</button></section>}
-      {mainTab === "notifications" && <section className="em-tab-screen"><h1>🔔 Thông báo</h1><p>Cập nhật tương tác với bài viết và hoạt động từ những Nhà bạn tham gia.</p><div className="em-tab-filters">{[["all","Tất cả"],["comments","Bình luận"],["reactions","Cảm xúc"]].map(([key,label]) => <button type="button" key={key} className={notificationFilter === key ? "selected" : ""} onClick={() => setNotificationFilter(key)}>{label}</button>)}</div><div className="em-tab-cards">{myPostInteractions.filter(item => notificationFilter === "all" || (notificationFilter === "comments" ? item.type === "comment" : item.type !== "comment")).map((item,index) => <button className="em-tab-card" type="button" key={(item.id || item.post_id) + ":" + index} onClick={() => { setMainTab("home"); setOpenedInteractionPost(item.post_id); }}><span className="em-tab-icon">{item.type === "comment" ? "💬" : "❤️"}</span><span><strong>{item.actorName} {item.type === "comment" ? "đã bình luận" : "đã thả cảm xúc"} vào bài viết của bạn</strong><small>{new Date(item.created_at).toLocaleString("vi-VN")}</small></span><b>›</b></button>)}{notificationFilter === "all" && joinedHouseholds.filter(item => joinedHouseUpdates[item.household_id]).map(item => <button type="button" className="em-tab-card" key={item.household_id} onClick={() => { setOpenedHouseholdTab("family"); setOpenedHousehold(item.households); }}><span className="em-tab-icon">🏠</span><span><strong>Hoạt động mới từ {item.households?.name || "Nhà đã tham gia"}</strong><small>Chạm để xem hoạt động gia đình</small></span><b>›</b></button>)}</div>{!myPostInteractions.length && !Object.values(joinedHouseUpdates).some(Boolean) && <p>Chưa có thông báo mới.</p>}</section>}
+</section></section>}
       {mainTab === "profile" && <section className="em-tab-screen"><h1>👤 Cá nhân</h1><div className="em-profile-hero"><div className="em-profile-avatar">{(currentUser?.email || "E").charAt(0).toUpperCase()}</div><h2>{currentUser?.user_metadata?.full_name || "Tài khoản EverMoment"}</h2><p>{currentUser?.email || ""}</p></div><div className="em-tab-cards"><button type="button" className="em-tab-card" onClick={() => setMainTab("home")}><span>🏠</span><strong>Nhà của tôi</strong><b>›</b></button><button type="button" className="em-tab-card" onClick={() => setMainTab("journeys")}><span>🌿</span><strong>Hành trình của tôi</strong><b>›</b></button><div className="em-tab-card"><span>🔒</span><span><strong>Quyền riêng tư</strong><small>Nhà riêng tư và nội dung được chia sẻ theo quyền thành viên.</small></span></div><button type="button" className="em-tab-card em-logout" onClick={() => onLogout?.()}><span>↪</span><strong>Đăng xuất</strong><b>›</b></button></div></section>}
 <nav className="bottom-nav" aria-label="Điều hướng EverMoment">
   <button className={`nav-item ${mainTab === "home" ? "active" : ""}`} type="button" onClick={() => setMainTab("home")}>
