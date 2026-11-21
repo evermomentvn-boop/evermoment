@@ -81,7 +81,7 @@ export default function FamilyPost({ post, userId, authorName, onInteraction, co
           <span><strong>{post.body}</strong><small>Chạm để xem bài viết và tương tác ›</small></span>
         </button>
       ) : <>
-      {compact && <button type="button" className="hs-family-collapse" onClick={() => { setFullPost(false); setExpanded(false); setShowReactions(false); }}>⌃ Thu gọn bài viết</button>}
+      {compact && <button type="button" className="hs-family-collapse" aria-label="Thu gọn bài viết" title="Thu gọn" onClick={() => { setFullPost(false); setExpanded(false); setShowReactions(false); }}>⌃</button>}
       <p className="hs-family-post-body">{post.body}</p>
       {post.photo_url && <img className="hs-family-post-photo" src={post.photo_url} alt="Ảnh bài đăng" loading="lazy" />}
       {post.event_date && <small>📅 {new Date(post.event_date + "T12:00:00").toLocaleDateString("vi-VN")}</small>}
