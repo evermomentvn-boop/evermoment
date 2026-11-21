@@ -471,3 +471,5 @@
 .hs-family-interaction-notice small { display: block; color: #898390; margin-top: 5px; font-size: 11px; }
 
 .hs-family-collapse{display:block;margin:8px 10px 4px auto;padding:7px 12px;border:1px solid #f5dce3;border-radius:20px;background:#fff5f7;color:#d83d60;font-size:12px;font-weight:600;cursor:pointer}
+
+.hs-family-collapse{width:28px;height:28px;padding:0;display:grid;place-items:center;margin:5px 8px 2px auto;border-radius:50%;font-size:18px;line-height:1;background:#fff7f9;color:#c44b67}
