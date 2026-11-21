@@ -8,6 +8,7 @@ import Onboarding from "./pages/Home/Onboarding/Onboarding";
 function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [screen, setScreen] = useState("onboarding");
+  const [dashboardTab, setDashboardTab] = useState("home");
   const [authUser, setAuthUser] = useState(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -976,6 +977,8 @@ async function loadFiles(folder) {
 
       {screen === "dashboard" && (
   <Home
+  mainTab={dashboardTab}
+  onMainTabChange={setDashboardTab}
   customerId={localStorage.getItem("customerId")}
   authUser={authUser}
 customerCode={customerCode}
