@@ -469,3 +469,5 @@
 .hs-family-interaction-notices h3 { font-size: 15px; margin-bottom: 10px; }
 .hs-family-interaction-notice { display: block; width: 100%; text-align: left; border: 1px solid #ffe1e9; background: #fff7fa; border-radius: 12px; padding: 11px; margin: 7px 0; color: #18243e; cursor: pointer; }
 .hs-family-interaction-notice small { display: block; color: #898390; margin-top: 5px; font-size: 11px; }
+
+.hs-family-collapse{display:block;margin:8px 10px 4px auto;padding:7px 12px;border:1px solid #f5dce3;border-radius:20px;background:#fff5f7;color:#d83d60;font-size:12px;font-weight:600;cursor:pointer}
