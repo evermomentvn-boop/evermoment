@@ -28,6 +28,15 @@ onUpdateJourney,
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const setMainTab = (tab) => onMainTabChange?.(tab);
   const [notificationFilter, setNotificationFilter] = useState("all");
+  const [readNotificationKeys, setReadNotificationKeys] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("evermoment-notification-read") || "[]"); } catch { return []; }
+  });
+  const markNotificationRead = (key) => setReadNotificationKeys(previous => {
+    const next = previous.includes(key) ? previous : [...previous, key];
+    localStorage.setItem("evermoment-notification-read", JSON.stringify(next.slice(-500)));
+    return next;
+  });
+
   const recentFiles = files.slice(0, 3);
   const today = new Date();
 
@@ -1130,34 +1139,39 @@ title="Bấm để vào không gian Nhà"
     </div>
   </div>
 )}</section>}
-      {mainTab === "notifications" && <section className="em-tab-screen"><h1>🔔 Thông báo & hoạt động gia đình</h1><p>Bài đăng gửi đến Nhà của bạn và những tương tác với bài viết bạn đã chia sẻ.</p><div className="em-tab-filters">{[["all","Tất cả"],["comments","Bình luận"],["reactions","Cảm xúc"]].map(([key,label]) => <button type="button" key={key} className={notificationFilter === key ? "selected" : ""} onClick={() => setNotificationFilter(key)}>{label}</button>)}</div><div className="em-tab-cards">{notificationFilter === "all" && joinedHouseholds.filter(item => joinedHouseUpdates[item.household_id]).map(item => <button type="button" className="em-tab-card" key={item.household_id} onClick={() => { setOpenedHouseholdTab("family"); setOpenedHousehold(item.households); }}><span className="em-tab-icon">🏠</span><span><strong>Hoạt động mới từ {item.households?.name || "Nhà đã tham gia"}</strong><small>Chạm để xem hoạt động gia đình</small></span><b>›</b></button>)}</div><section className="family-activity">
-  <div className="section-heading">
-    <h2>Hoạt động gia đình</h2>
-    <button type="button" onClick={() => setShowAllFamilyPosts(value => !value)}>{showAllFamilyPosts ? "Thu gọn" : "Xem thêm ›"}</button>
-  </div>
-  {familyActivityError && <p role="alert">Chưa tải được hoạt động: {familyActivityError}</p>}
-  {myPostInteractions.length > 0 && <div className="hs-family-interaction-notices">
-    <h3>🔔 Tương tác với bài viết của bạn</h3>
-    {myPostInteractions.filter(item => notificationFilter === "all" || (notificationFilter === "comments" ? item.type === "comment" : item.type !== "comment")).slice(0, showAllFamilyPosts ? 20 : 3).map((item, index) => (
-      <div key={item.type + ":" + (item.id || item.post_id + ":" + item.user_id)}>
-        <button type="button" className="hs-family-interaction-notice" onClick={() => {
-          setOpenedInteractionPost(openedInteractionPost === item.post_id ? null : item.post_id);
-        }}>
-          <strong>{item.actorName}</strong> {item.type === "comment" ? "đã bình luận" : "đã thả " + item.emoji + " vào"} bài viết của bạn
-          <small>{item.post.body.slice(0, 90)} · {new Date(item.created_at).toLocaleString("vi-VN")}</small>
-        </button>
-        {openedInteractionPost === item.post_id && <FamilyPost key={item.post_id} post={item.post}
-          userId={authUser?.id} authorName="Bạn" initiallyExpanded />}
-      </div>
-    ))}
-  </div>}
-  <div className="hs-family-feed">
-    {!familyActivities.length && !familyActivityError && <p>Chưa có bài đăng nào gửi đến Nhà của mình.</p>}
-    {(showAllFamilyPosts ? familyActivities : familyActivities.slice(0, 3)).map(item => (
-      <FamilyPost key={item.id} post={item} userId={authUser?.id} authorName={item.authorName} compact />
-    ))}
-  </div>
-</section></section>}
+      {mainTab === "notifications" && <section className="em-tab-screen em-notifications">
+        <div className="em-notification-top"><h1>Thông báo</h1><button type="button" onClick={() => {
+          const keys = [...myPostInteractions.map(item => "interaction:" + (item.id || item.post_id + ":" + item.user_id + ":" + item.type)), ...joinedHouseholds.filter(item => joinedHouseUpdates[item.household_id]).map(item => "house:" + item.household_id)];
+          setReadNotificationKeys(previous => { const next = [...new Set([...previous, ...keys])]; localStorage.setItem("evermoment-notification-read", JSON.stringify(next.slice(-500))); return next; });
+        }}>✓ Đánh dấu đã đọc</button></div>
+        <div className="em-tab-filters">{[["all","Tất cả"],["unread","Chưa đọc"],["comments","Bình luận"],["reactions","Cảm xúc"]].map(([key,label]) => <button type="button" key={key} className={notificationFilter === key ? "selected" : ""} onClick={() => setNotificationFilter(key)}>{label}</button>)}</div>
+        <div className="em-notification-section-title">🔔 Thông báo mới</div>
+        <div className="em-notification-list">
+          {myPostInteractions.filter(item => {
+            const key = "interaction:" + (item.id || item.post_id + ":" + item.user_id + ":" + item.type);
+            return notificationFilter === "all" || (notificationFilter === "unread" ? !readNotificationKeys.includes(key) : notificationFilter === "comments" ? item.type === "comment" : item.type !== "comment");
+          }).slice(0, showAllFamilyPosts ? 30 : 5).map(item => {
+            const key = "interaction:" + (item.id || item.post_id + ":" + item.user_id + ":" + item.type);
+            return <div key={key} className={"em-notification-entry " + (!readNotificationKeys.includes(key) ? "is-unread" : "")}>
+              <button type="button" className="em-notification-row" onClick={() => { markNotificationRead(key); setOpenedInteractionPost(openedInteractionPost === item.post_id ? null : item.post_id); }}>
+                <span className="em-notification-avatar">{item.type === "comment" ? "💬" : (item.emoji || "❤️")}</span>
+                <span className="em-notification-copy"><strong>{item.actorName}</strong> {item.type === "comment" ? "đã bình luận bài viết của bạn" : "đã thả cảm xúc vào bài viết của bạn"}<small>{item.post?.body?.slice(0, 65) || "Bài viết"} · {new Date(item.created_at).toLocaleString("vi-VN")}</small></span>
+                {!readNotificationKeys.includes(key) && <i className="em-unread-dot" />}
+              </button>
+              {openedInteractionPost === item.post_id && <div className="em-notification-expanded"><FamilyPost post={item.post} userId={authUser?.id} authorName="Bạn" initiallyExpanded /></div>}
+            </div>;
+          })}
+          {notificationFilter === "all" || notificationFilter === "unread" ? joinedHouseholds.filter(item => joinedHouseUpdates[item.household_id] && (notificationFilter !== "unread" || !readNotificationKeys.includes("house:" + item.household_id))).map(item => <button type="button" className="em-notification-row em-notification-entry" key={item.household_id} onClick={() => { markNotificationRead("house:" + item.household_id); setOpenedHouseholdTab("family"); setOpenedHousehold(item.households); }}><span className="em-notification-avatar">🏠</span><span className="em-notification-copy"><strong>{item.households?.name || "Nhà đã tham gia"}</strong> có hoạt động gia đình mới<small>Chạm để xem trong Nhà đã tham gia</small></span><b>›</b></button>) : null}
+          {!myPostInteractions.length && !joinedHouseholds.some(item => joinedHouseUpdates[item.household_id]) && <p className="em-notification-empty">Chưa có tương tác mới.</p>}
+        </div>
+        {myPostInteractions.length > 5 && <button type="button" className="em-notification-more" onClick={() => setShowAllFamilyPosts(value => !value)}>{showAllFamilyPosts ? "Thu gọn" : "Xem thêm thông báo ›"}</button>}
+        <div className="em-notification-section-title">🏠 Bảng tin gia đình <button type="button" onClick={() => setShowAllFamilyPosts(value => !value)}>{showAllFamilyPosts ? "Thu gọn" : "Xem tất cả ›"}</button></div>
+        {familyActivityError && <p role="alert">{familyActivityError}</p>}
+        <div className="em-notification-feed">
+          {!familyActivities.length && !familyActivityError && <p className="em-notification-empty">Chưa có bài đăng nào gửi đến Nhà của mình.</p>}
+          {(showAllFamilyPosts ? familyActivities : familyActivities.slice(0, 3)).map(item => <FamilyPost key={item.id} post={item} userId={authUser?.id} authorName={item.authorName} compact />)}
+        </div>
+      </section>}
       {mainTab === "profile" && <section className="em-tab-screen"><h1>👤 Cá nhân</h1><div className="em-profile-hero"><div className="em-profile-avatar">{(currentUser?.email || "E").charAt(0).toUpperCase()}</div><h2>{currentUser?.user_metadata?.full_name || "Tài khoản EverMoment"}</h2><p>{currentUser?.email || ""}</p></div><div className="em-tab-cards"><button type="button" className="em-tab-card" onClick={() => setMainTab("home")}><span>🏠</span><strong>Nhà của tôi</strong><b>›</b></button><button type="button" className="em-tab-card" onClick={() => setMainTab("journeys")}><span>🌿</span><strong>Hành trình của tôi</strong><b>›</b></button><div className="em-tab-card"><span>🔒</span><span><strong>Quyền riêng tư</strong><small>Nhà riêng tư và nội dung được chia sẻ theo quyền thành viên.</small></span></div><button type="button" className="em-tab-card em-logout" onClick={() => onLogout?.()}><span>↪</span><strong>Đăng xuất</strong><b>›</b></button></div></section>}
 <nav className="bottom-nav" aria-label="Điều hướng EverMoment">
   <button className={`nav-item ${mainTab === "home" ? "active" : ""}`} type="button" onClick={() => setMainTab("home")}>
